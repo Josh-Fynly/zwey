@@ -34,7 +34,8 @@ vercel deploy
 
 # Project Status
 Current Week: Week 1 (Setup + Auth) — May 1,2026
-Launch Target: 8-14 weeks (MVP)
+
+# *Launch Target*: 8-14 weeks (MVP)
 
 # Team
 Product: TENcube
