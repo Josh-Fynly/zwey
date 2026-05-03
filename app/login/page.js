@@ -1,13 +1,15 @@
 "use client";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../../context/AuthContext";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
   const router = useRouter();
   const { login } = useAuth();
 
@@ -42,6 +44,7 @@ export default function Login() {
             className="w-full px-4 py-2 border rounded-lg"
             required
           />
+
           <input
             type="password"
             placeholder="Password"
@@ -50,6 +53,7 @@ export default function Login() {
             className="w-full px-4 py-2 border rounded-lg"
             required
           />
+
           <button
             type="submit"
             disabled={loading}
@@ -60,7 +64,7 @@ export default function Login() {
         </form>
 
         <p className="text-center mt-4">
-          Don't have an account?{" "}
+          Don&apos;t have an account?{" "}
           <a href="/signup" className="text-blue-600 hover:underline">
             Sign up
           </a>
@@ -68,4 +72,4 @@ export default function Login() {
       </div>
     </div>
   );
-}
+              }
