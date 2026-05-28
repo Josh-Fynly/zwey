@@ -11,102 +11,47 @@ import {
   updateDoc,
 } from "firebase/firestore";
 
-import {
-  ref,
-  uploadBytes,
-  getDownloadURL,
-} from "firebase/storage";
-
-import {
-  db,
-  storage,
-} from "../../lib/firebase";
+import { db } from "../../lib/firebase";
 
 export default function Onboarding() {
   const router = useRouter();
 
   const { user, loading } = useAuth();
 
-  const [artistName, setArtistName] = useState("");
-  const [username, setUsername] = useState("");
+  const [artistName, setArtistName] =
+    useState("");
+
+  const [username, setUsername] =
+    useState("");
+
   const [bio, setBio] = useState("");
 
-  const [genre, setGenre] = useState("");
+  const [genre, setGenre] =
+    useState("");
 
-  const [spotifyUrl, setSpotifyUrl] = useState("");
-  const [bandlabUrl, setBandlabUrl] = useState("");
-  const [rapchatUrl, setRapchatUrl] = useState("");
+  const [spotifyUrl, setSpotifyUrl] =
+    useState("");
 
-  const [profileImage, setProfileImage] = useState(null);
+  const [bandlabUrl, setBandlabUrl] =
+    useState("");
 
-  const [previewUrl, setPreviewUrl] = useState("");
+  const [rapchatUrl, setRapchatUrl] =
+    useState("");
 
-  const [saving, setSaving] = useState(false);
+  const [picUrl, setPicUrl] =
+    useState("");
 
-  const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] =
+    useState(false);
 
-  const [success, setSuccess] = useState("");
-
-  const [error, setError] = useState("");
+  const [error, setError] =
+    useState("");
 
   useEffect(() => {
     if (!loading && !user) {
       router.push("/signup");
     }
   }, [user, loading, router]);
-
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-
-    if (!file) return;
-
-    if (
-      file.type !== "image/jpeg" &&
-      file.type !== "image/png"
-    ) {
-      setError("Only JPG and PNG files are allowed.");
-      return;
-    }
-
-    setProfileImage(file);
-
-    const imagePreview =
-      URL.createObjectURL(file);
-
-    setPreviewUrl(imagePreview);
-  };
-
-  async function uploadProfileImage(file) {
-    if (!user || !file) return "";
-
-    try {
-      setUploading(true);
-
-      const storageRef = ref(
-        storage,
-        `users/${user.uid}/profile.jpg`
-      );
-
-      await uploadBytes(storageRef, file);
-
-      const downloadURL =
-        await getDownloadURL(storageRef);
-
-      setSuccess("Profile image uploaded.");
-
-      return downloadURL;
-    } catch (err) {
-      console.error(err);
-
-      setError(
-        "Failed to upload profile image."
-      );
-
-      return "";
-    } finally {
-      setUploading(false);
-    }
-  }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -118,27 +63,25 @@ export default function Onboarding() {
     setError("");
 
     try {
-      let pic_url = "";
-
-      if (profileImage) {
-        pic_url =
-          await uploadProfileImage(
-            profileImage
-          );
-      }
-
       await updateDoc(
         doc(db, "users", user.uid),
         {
           artistName,
+
           username:
             username.toLowerCase(),
+
           bio,
+
           genre,
+
           spotifyUrl,
+
           bandlabUrl,
+
           rapchatUrl,
-          pic_url,
+
+          pic_url: picUrl,
         }
       );
 
@@ -176,12 +119,6 @@ export default function Onboarding() {
         {error && (
           <p className="text-red-500 mb-4">
             {error}
-          </p>
-        )}
-
-        {success && (
-          <p className="text-green-600 mb-4">
-            {success}
           </p>
         )}
 
@@ -227,7 +164,9 @@ export default function Onboarding() {
           <select
             value={genre}
             onChange={(e) =>
-              setGenre(e.target.value)
+              setGenre(
+                e.target.value
+              )
             }
             className="w-full border rounded-lg px-4 py-3"
             required
@@ -313,41 +252,24 @@ export default function Onboarding() {
             className="w-full border rounded-lg px-4 py-3"
           />
 
-          <div>
-            <label className="block mb-2 font-medium">
-              Profile Image
-            </label>
-
-            <input
-              type="file"
-              accept=".jpg,.jpeg,.png"
-              onChange={
-                handleImageChange
-              }
-              className="w-full border rounded-lg px-4 py-3"
-            />
-          </div>
-
-          {previewUrl && (
-            <div>
-              <img
-                src={previewUrl}
-                alt="Preview"
-                className="w-32 h-32 rounded-full object-cover border"
-              />
-            </div>
-          )}
+          <input
+            type="url"
+            placeholder="Profile Image URL"
+            value={picUrl}
+            onChange={(e) =>
+              setPicUrl(
+                e.target.value
+              )
+            }
+            className="w-full border rounded-lg px-4 py-3"
+          />
 
           <button
             type="submit"
-            disabled={
-              saving || uploading
-            }
+            disabled={saving}
             className="w-full bg-black text-white py-3 rounded-lg font-semibold disabled:bg-gray-400"
           >
-            {uploading
-              ? "Uploading..."
-              : saving
+            {saving
               ? "Saving profile..."
               : "Complete Setup"}
           </button>
@@ -355,4 +277,4 @@ export default function Onboarding() {
       </div>
     </div>
   );
-}
+              }
