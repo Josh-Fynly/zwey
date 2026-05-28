@@ -6,9 +6,21 @@ import { useRouter } from "next/navigation";
 
 import { useAuth } from "../../context/AuthContext";
 
-import { doc, updateDoc } from "firebase/firestore";
+import {
+  doc,
+  updateDoc,
+} from "firebase/firestore";
 
-import { db } from "../../lib/firebase";
+import {
+  ref,
+  uploadBytes,
+  getDownloadURL,
+} from "firebase/storage";
+
+import {
+  db,
+  storage,
+} from "../../lib/firebase";
 
 export default function Onboarding() {
   const router = useRouter();
@@ -18,14 +30,22 @@ export default function Onboarding() {
   const [artistName, setArtistName] = useState("");
   const [username, setUsername] = useState("");
   const [bio, setBio] = useState("");
+
   const [genre, setGenre] = useState("");
 
   const [spotifyUrl, setSpotifyUrl] = useState("");
   const [bandlabUrl, setBandlabUrl] = useState("");
   const [rapchatUrl, setRapchatUrl] = useState("");
-  const [imageUrl, setImageUrl] = useState("");
+
+  const [profileImage, setProfileImage] = useState(null);
+
+  const [previewUrl, setPreviewUrl] = useState("");
 
   const [saving, setSaving] = useState(false);
+
+  const [uploading, setUploading] = useState(false);
+
+  const [success, setSuccess] = useState("");
 
   const [error, setError] = useState("");
 
@@ -35,29 +55,100 @@ export default function Onboarding() {
     }
   }, [user, loading, router]);
 
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+
+    if (!file) return;
+
+    if (
+      file.type !== "image/jpeg" &&
+      file.type !== "image/png"
+    ) {
+      setError("Only JPG and PNG files are allowed.");
+      return;
+    }
+
+    setProfileImage(file);
+
+    const imagePreview =
+      URL.createObjectURL(file);
+
+    setPreviewUrl(imagePreview);
+  };
+
+  async function uploadProfileImage(file) {
+    if (!user || !file) return "";
+
+    try {
+      setUploading(true);
+
+      const storageRef = ref(
+        storage,
+        `users/${user.uid}/profile.jpg`
+      );
+
+      await uploadBytes(storageRef, file);
+
+      const downloadURL =
+        await getDownloadURL(storageRef);
+
+      setSuccess("Profile image uploaded.");
+
+      return downloadURL;
+    } catch (err) {
+      console.error(err);
+
+      setError(
+        "Failed to upload profile image."
+      );
+
+      return "";
+    } finally {
+      setUploading(false);
+    }
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!user) return;
 
     setSaving(true);
+
     setError("");
 
     try {
-      await updateDoc(doc(db, "users", user.uid), {
-        artistName,
-        username: username.toLowerCase(),
-        bio,
-        genre,
-        spotifyUrl,
-        bandlabUrl,
-        rapchatUrl,
-        imageUrl,
-      });
+      let pic_url = "";
+
+      if (profileImage) {
+        pic_url =
+          await uploadProfileImage(
+            profileImage
+          );
+      }
+
+      await updateDoc(
+        doc(db, "users", user.uid),
+        {
+          artistName,
+          username:
+            username.toLowerCase(),
+          bio,
+          genre,
+          spotifyUrl,
+          bandlabUrl,
+          rapchatUrl,
+          pic_url,
+        }
+      );
 
       router.push("/dashboard");
     } catch (err) {
-      setError(err.message);
+      console.error(err);
+
+      setError(
+        "Failed to complete profile setup."
+      );
     } finally {
       setSaving(false);
     }
@@ -88,6 +179,12 @@ export default function Onboarding() {
           </p>
         )}
 
+        {success && (
+          <p className="text-green-600 mb-4">
+            {success}
+          </p>
+        )}
+
         <form
           onSubmit={handleSubmit}
           className="space-y-5"
@@ -97,7 +194,9 @@ export default function Onboarding() {
             placeholder="Artist Name"
             value={artistName}
             onChange={(e) =>
-              setArtistName(e.target.value)
+              setArtistName(
+                e.target.value
+              )
             }
             className="w-full border rounded-lg px-4 py-3"
             required
@@ -108,7 +207,9 @@ export default function Onboarding() {
             placeholder="Username"
             value={username}
             onChange={(e) =>
-              setUsername(e.target.value)
+              setUsername(
+                e.target.value
+              )
             }
             className="w-full border rounded-lg px-4 py-3"
             required
@@ -123,22 +224,67 @@ export default function Onboarding() {
             className="w-full border rounded-lg px-4 py-3 min-h-[120px]"
           />
 
-          <input
-            type="text"
-            placeholder="Genre"
+          <select
             value={genre}
             onChange={(e) =>
               setGenre(e.target.value)
             }
             className="w-full border rounded-lg px-4 py-3"
-          />
+            required
+          >
+            <option value="">
+              Select Genre
+            </option>
+
+            <option value="Hip-Hop">
+              Hip-Hop
+            </option>
+
+            <option value="Afrobeats">
+              Afrobeats
+            </option>
+
+            <option value="Trap">
+              Trap
+            </option>
+
+            <option value="R&B">
+              R&B
+            </option>
+
+            <option value="Drill">
+              Drill
+            </option>
+
+            <option value="Soul">
+              Soul
+            </option>
+
+            <option value="Electronic">
+              Electronic
+            </option>
+
+            <option value="Reggae">
+              Reggae
+            </option>
+
+            <option value="Pop">
+              Pop
+            </option>
+
+            <option value="Other">
+              Other
+            </option>
+          </select>
 
           <input
             type="url"
             placeholder="Spotify URL"
             value={spotifyUrl}
             onChange={(e) =>
-              setSpotifyUrl(e.target.value)
+              setSpotifyUrl(
+                e.target.value
+              )
             }
             className="w-full border rounded-lg px-4 py-3"
           />
@@ -148,7 +294,9 @@ export default function Onboarding() {
             placeholder="BandLab URL"
             value={bandlabUrl}
             onChange={(e) =>
-              setBandlabUrl(e.target.value)
+              setBandlabUrl(
+                e.target.value
+              )
             }
             className="w-full border rounded-lg px-4 py-3"
           />
@@ -158,27 +306,48 @@ export default function Onboarding() {
             placeholder="Rapchat URL"
             value={rapchatUrl}
             onChange={(e) =>
-              setRapchatUrl(e.target.value)
+              setRapchatUrl(
+                e.target.value
+              )
             }
             className="w-full border rounded-lg px-4 py-3"
           />
 
-          <input
-            type="url"
-            placeholder="Profile Image URL"
-            value={imageUrl}
-            onChange={(e) =>
-              setImageUrl(e.target.value)
-            }
-            className="w-full border rounded-lg px-4 py-3"
-          />
+          <div>
+            <label className="block mb-2 font-medium">
+              Profile Image
+            </label>
+
+            <input
+              type="file"
+              accept=".jpg,.jpeg,.png"
+              onChange={
+                handleImageChange
+              }
+              className="w-full border rounded-lg px-4 py-3"
+            />
+          </div>
+
+          {previewUrl && (
+            <div>
+              <img
+                src={previewUrl}
+                alt="Preview"
+                className="w-32 h-32 rounded-full object-cover border"
+              />
+            </div>
+          )}
 
           <button
             type="submit"
-            disabled={saving}
+            disabled={
+              saving || uploading
+            }
             className="w-full bg-black text-white py-3 rounded-lg font-semibold disabled:bg-gray-400"
           >
-            {saving
+            {uploading
+              ? "Uploading..."
+              : saving
               ? "Saving profile..."
               : "Complete Setup"}
           </button>
