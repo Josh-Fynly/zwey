@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "@/context/AuthContext";
 
 export default function SignUp() {
   const [email, setEmail] = useState("");
@@ -32,7 +32,6 @@ export default function SignUp() {
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
-
       <div className="w-full max-w-md bg-white p-8 rounded-xl shadow">
 
         <h1 className="text-2xl font-bold mb-6">
@@ -40,9 +39,7 @@ export default function SignUp() {
         </h1>
 
         {error && (
-          <p className="text-sm text-red-500 mb-4">
-            {error}
-          </p>
+          <p className="text-sm text-red-500 mb-4">{error}</p>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -65,9 +62,7 @@ export default function SignUp() {
             required
           />
 
-          {/* PASSWORD WITH TOGGLE */}
           <div className="relative">
-
             <input
               type={showPassword ? "text" : "password"}
               placeholder="Password"
@@ -84,17 +79,15 @@ export default function SignUp() {
             >
               {showPassword ? "🙈" : "👁️"}
             </button>
-
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-black text-white py-2 rounded-lg hover:bg-gray-800 disabled:bg-gray-400"
+            className="w-full bg-black text-white py-2 rounded-lg"
           >
             {loading ? "Creating account..." : "Sign up"}
           </button>
-
         </form>
 
         <p className="text-sm text-center mt-4">
@@ -105,7 +98,6 @@ export default function SignUp() {
         </p>
 
       </div>
-
     </div>
   );
-}
+                }
