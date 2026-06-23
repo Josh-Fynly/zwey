@@ -2,11 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../context/AuthContext";
+import { sendPasswordResetEmail } from "firebase/auth";
+import { auth } from "../lib/firebase";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -28,48 +31,93 @@ export default function Login() {
     }
   };
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-        <h1 className="text-2xl font-bold mb-6">Login</h1>
+  const handleForgotPassword = async () => {
+    if (!email) return setError("Enter your email first");
 
-        {error && <p className="text-red-500 mb-4">{error}</p>}
+    try {
+      await sendPasswordResetEmail(auth, email);
+      setError("Password reset email sent ✔");
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center px-4">
+
+      <div className="w-full max-w-md bg-white p-8 rounded-xl shadow">
+
+        <h1 className="text-2xl font-bold mb-6">
+          Welcome back
+        </h1>
+
+        {error && (
+          <p className="text-sm text-red-500 mb-4">
+            {error}
+          </p>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
+
           <input
             type="email"
             placeholder="Email"
+            className="w-full border px-4 py-2 rounded-lg"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-4 py-2 border rounded-lg"
             required
           />
 
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-4 py-2 border rounded-lg"
-            required
-          />
+          {/* PASSWORD FIELD WITH TOGGLE */}
+          <div className="relative">
+
+            <input
+              type={showPassword ? "text" : "password"}
+              placeholder="Password"
+              className="w-full border px-4 py-2 rounded-lg pr-10"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-2.5 text-gray-500"
+            >
+              {showPassword ? "🙈" : "👁️"}
+            </button>
+
+          </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-400"
+            className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
           >
             {loading ? "Logging in..." : "Login"}
           </button>
+
         </form>
 
-        <p className="text-center mt-4">
-          Don&apos;t have an account?{" "}
+        <div className="mt-4 flex justify-between text-sm">
+
+          <button
+            type="button"
+            onClick={handleForgotPassword}
+            className="text-blue-600 hover:underline"
+          >
+            Forgot password?
+          </button>
+
           <a href="/signup" className="text-blue-600 hover:underline">
-            Sign up
+            Create account
           </a>
-        </p>
+
+        </div>
+
       </div>
+
     </div>
   );
               }
