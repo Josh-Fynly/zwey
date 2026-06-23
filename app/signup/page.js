@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from "../context/AuthContext";
 
 export default function SignUp() {
   const [email, setEmail] = useState("");
@@ -31,71 +31,55 @@ export default function SignUp() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
-      <div className="w-full max-w-md bg-white p-8 rounded-xl shadow">
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="w-full max-w-md p-6 border rounded-lg">
 
-        <h1 className="text-2xl font-bold mb-6">
-          Create your artist account
+        <h1 className="text-xl font-bold mb-4">
+          Create Account
         </h1>
 
-        {error && (
-          <p className="text-sm text-red-500 mb-4">{error}</p>
-        )}
+        {error && <p className="text-red-500 mb-3">{error}</p>}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3">
 
           <input
             type="email"
             placeholder="Email"
-            className="w-full border px-4 py-2 rounded-lg"
+            className="w-full border p-2"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            required
           />
 
           <input
             type="text"
             placeholder="Username"
-            className="w-full border px-4 py-2 rounded-lg"
+            className="w-full border p-2"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            required
           />
 
           <div className="relative">
             <input
               type={showPassword ? "text" : "password"}
               placeholder="Password"
-              className="w-full border px-4 py-2 rounded-lg pr-10"
+              className="w-full border p-2"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              required
             />
 
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-2.5 text-gray-500"
+              className="absolute right-2 top-2 text-sm"
             >
               {showPassword ? "🙈" : "👁️"}
             </button>
           </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-black text-white py-2 rounded-lg"
-          >
-            {loading ? "Creating account..." : "Sign up"}
+          <button className="w-full bg-blue-600 text-white p-2">
+            {loading ? "Creating..." : "Sign Up"}
           </button>
         </form>
-
-        <p className="text-sm text-center mt-4">
-          Already have an account?{" "}
-          <a href="/login" className="text-blue-600 hover:underline">
-            Login
-          </a>
-        </p>
 
       </div>
     </div>
