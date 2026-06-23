@@ -14,5 +14,9 @@ export default function Home() {
     }
   }, [user, loading, router]);
 
-  return <p>Redirecting...</p>;
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <p className="text-gray-500">Loading Zwey...</p>
+    </div>
+  );
 }
