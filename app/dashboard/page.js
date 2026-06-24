@@ -1,6 +1,6 @@
 "use client";
 
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../../context/AuthContext";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
@@ -18,6 +18,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen p-6">
+
       <h1 className="text-2xl font-bold">
         Welcome {user?.email}
       </h1>
@@ -28,6 +29,7 @@ export default function Dashboard() {
       >
         Logout
       </button>
+
     </div>
   );
 }
