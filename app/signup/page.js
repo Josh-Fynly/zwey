@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../../context/AuthContext";
 
 export default function SignUp() {
   const [email, setEmail] = useState("");
@@ -76,9 +76,13 @@ export default function SignUp() {
             </button>
           </div>
 
-          <button className="w-full bg-blue-600 text-white p-2">
+          <button
+            className="w-full bg-blue-600 text-white p-2"
+            disabled={loading}
+          >
             {loading ? "Creating..." : "Sign Up"}
           </button>
+
         </form>
 
       </div>
