@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "../context/AuthContext";
-import { auth } from "../lib/firebase";
+import { useAuth } from "../../context/AuthContext";
+import { auth } from "../../lib/firebase";
 import { sendPasswordResetEmail } from "firebase/auth";
 
 export default function Login() {
@@ -78,7 +78,10 @@ export default function Login() {
             </button>
           </div>
 
-          <button className="w-full bg-black text-white p-2">
+          <button
+            className="w-full bg-black text-white p-2"
+            disabled={loading}
+          >
             {loading ? "Loading..." : "Login"}
           </button>
         </form>
@@ -94,4 +97,4 @@ export default function Login() {
       </div>
     </div>
   );
-      }
+}
