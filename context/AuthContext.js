@@ -1,6 +1,12 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
+
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -23,34 +29,43 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      setLoading(false);
-    });
+    const unsubscribe = onAuthStateChanged(
+      auth,
+      (currentUser) => {
+        setUser(currentUser);
+        setLoading(false);
+      }
+    );
 
     return unsubscribe;
   }, []);
 
   const signup = async (email, password) => {
-    const userCredential = await createUserWithEmailAndPassword(
+    const userCredential =
+      await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+
+    const newUser = userCredential.user;
+
+    await setDoc(doc(db, "users", newUser.uid), {
+      uid: newUser.uid,
+      email: newUser.email,
+      profileCompleted: false,
+      createdAt: serverTimestamp(),
+    });
+
+    return newUser;
+  };
+
+  const login = async (email, password) => {
+    return signInWithEmailAndPassword(
       auth,
       email,
       password
     );
-
-    const user = userCredential.user;
-
-    await setDoc(doc(db, "users", user.uid), {
-      uid: user.uid,
-      email: user.email,
-      createdAt: serverTimestamp(),
-    });
-
-    return user;
-  };
-
-  const login = async (email, password) => {
-    return signInWithEmailAndPassword(auth, email, password);
   };
 
   const logout = async () => {
@@ -74,4 +89,4 @@ export function AuthProvider({ children }) {
 
 export function useAuth() {
   return useContext(AuthContext);
-}
+    }
