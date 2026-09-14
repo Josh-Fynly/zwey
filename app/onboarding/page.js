@@ -1,14 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-
 import { useRouter } from "next/navigation";
 
 import { useAuth } from "../../context/AuthContext";
 
 import {
+  collection,
   doc,
+  getDocs,
+  query,
   updateDoc,
+  where,
 } from "firebase/firestore";
 
 import { db } from "../../lib/firebase";
@@ -18,34 +21,17 @@ export default function Onboarding() {
 
   const { user, loading } = useAuth();
 
-  const [artistName, setArtistName] =
-    useState("");
-
-  const [username, setUsername] =
-    useState("");
-
+  const [artistName, setArtistName] = useState("");
+  const [username, setUsername] = useState("");
   const [bio, setBio] = useState("");
+  const [genre, setGenre] = useState("");
+  const [spotifyUrl, setSpotifyUrl] = useState("");
+  const [bandlabUrl, setBandlabUrl] = useState("");
+  const [rapchatUrl, setRapchatUrl] = useState("");
+  const [picUrl, setPicUrl] = useState("");
 
-  const [genre, setGenre] =
-    useState("");
-
-  const [spotifyUrl, setSpotifyUrl] =
-    useState("");
-
-  const [bandlabUrl, setBandlabUrl] =
-    useState("");
-
-  const [rapchatUrl, setRapchatUrl] =
-    useState("");
-
-  const [picUrl, setPicUrl] =
-    useState("");
-
-  const [saving, setSaving] =
-    useState(false);
-
-  const [error, setError] =
-    useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (!loading && !user) {
@@ -58,30 +44,73 @@ export default function Onboarding() {
 
     if (!user) return;
 
-    setSaving(true);
-
     setError("");
 
+    const normalizedUsername = username
+      .trim()
+      .toLowerCase();
+
+    if (!/^[a-z0-9_]{3,30}$/.test(normalizedUsername)) {
+      setError(
+        "Username must be 3–30 characters and contain only letters, numbers, or underscores."
+      );
+      return;
+    }
+
+    if (!artistName.trim()) {
+      setError("Artist name is required.");
+      return;
+    }
+
+    if (!genre) {
+      setError("Please select a genre.");
+      return;
+    }
+
+    setSaving(true);
+
     try {
+      const usernameQuery = query(
+        collection(db, "users"),
+        where("username", "==", normalizedUsername)
+      );
+
+      const usernameSnapshot =
+        await getDocs(usernameQuery);
+
+      const usernameTaken =
+        usernameSnapshot.docs.some(
+          (userDoc) => userDoc.id !== user.uid
+        );
+
+      if (usernameTaken) {
+        setError(
+          "That username is already taken. Please choose another one."
+        );
+        setSaving(false);
+        return;
+      }
+
       await updateDoc(
         doc(db, "users", user.uid),
         {
-          artistName,
+          artistName: artistName.trim(),
 
-          username:
-            username.toLowerCase(),
+          username: normalizedUsername,
 
-          bio,
+          bio: bio.trim(),
 
           genre,
 
-          spotifyUrl,
+          spotifyUrl: spotifyUrl.trim(),
 
-          bandlabUrl,
+          bandlabUrl: bandlabUrl.trim(),
 
-          rapchatUrl,
+          rapchatUrl: rapchatUrl.trim(),
 
-          pic_url: picUrl,
+          pic_url: picUrl.trim(),
+
+          profileCompleted: true,
         }
       );
 
@@ -90,7 +119,7 @@ export default function Onboarding() {
       console.error(err);
 
       setError(
-        "Failed to complete profile setup."
+        "Failed to complete profile setup. Please try again."
       );
     } finally {
       setSaving(false);
@@ -99,15 +128,20 @@ export default function Onboarding() {
 
   if (loading) {
     return (
-      <p className="p-8">
-        Loading...
-      </p>
+      <div className="min-h-screen flex items-center justify-center">
+        <p>Loading...</p>
+      </div>
     );
+  }
+
+  if (!user) {
+    return null;
   }
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-md p-8">
+
         <h1 className="text-3xl font-bold mb-2">
           Complete your artist profile
         </h1>
@@ -131,9 +165,7 @@ export default function Onboarding() {
             placeholder="Artist Name"
             value={artistName}
             onChange={(e) =>
-              setArtistName(
-                e.target.value
-              )
+              setArtistName(e.target.value)
             }
             className="w-full border rounded-lg px-4 py-3"
             required
@@ -146,11 +178,19 @@ export default function Onboarding() {
             onChange={(e) =>
               setUsername(
                 e.target.value
+                  .toLowerCase()
+                  .replace(/\s/g, "")
               )
             }
             className="w-full border rounded-lg px-4 py-3"
             required
+            minLength={3}
+            maxLength={30}
           />
+
+          <p className="text-xs text-gray-500 -mt-3">
+            3–30 characters. Letters, numbers, and underscores only.
+          </p>
 
           <textarea
             placeholder="Short Bio"
@@ -159,14 +199,13 @@ export default function Onboarding() {
               setBio(e.target.value)
             }
             className="w-full border rounded-lg px-4 py-3 min-h-[120px]"
+            maxLength={300}
           />
 
           <select
             value={genre}
             onChange={(e) =>
-              setGenre(
-                e.target.value
-              )
+              setGenre(e.target.value)
             }
             className="w-full border rounded-lg px-4 py-3"
             required
@@ -221,9 +260,7 @@ export default function Onboarding() {
             placeholder="Spotify URL"
             value={spotifyUrl}
             onChange={(e) =>
-              setSpotifyUrl(
-                e.target.value
-              )
+              setSpotifyUrl(e.target.value)
             }
             className="w-full border rounded-lg px-4 py-3"
           />
@@ -233,9 +270,7 @@ export default function Onboarding() {
             placeholder="BandLab URL"
             value={bandlabUrl}
             onChange={(e) =>
-              setBandlabUrl(
-                e.target.value
-              )
+              setBandlabUrl(e.target.value)
             }
             className="w-full border rounded-lg px-4 py-3"
           />
@@ -245,9 +280,7 @@ export default function Onboarding() {
             placeholder="Rapchat URL"
             value={rapchatUrl}
             onChange={(e) =>
-              setRapchatUrl(
-                e.target.value
-              )
+              setRapchatUrl(e.target.value)
             }
             className="w-full border rounded-lg px-4 py-3"
           />
@@ -257,9 +290,7 @@ export default function Onboarding() {
             placeholder="Profile Image URL"
             value={picUrl}
             onChange={(e) =>
-              setPicUrl(
-                e.target.value
-              )
+              setPicUrl(e.target.value)
             }
             className="w-full border rounded-lg px-4 py-3"
           />
@@ -267,7 +298,7 @@ export default function Onboarding() {
           <button
             type="submit"
             disabled={saving}
-            className="w-full bg-black text-white py-3 rounded-lg font-semibold disabled:bg-gray-400"
+            className="w-full bg-black hover:bg-gray-800 text-white py-3 rounded-lg font-semibold disabled:bg-gray-400"
           >
             {saving
               ? "Saving profile..."
