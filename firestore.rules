@@ -1,0 +1,108 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    /*
+     * Private account data.
+     *
+     * This document must never become publicly readable because it contains
+     * account information such as email.
+     */
+    match /users/{userId} {
+      allow create: if isOwner(userId)
+        && request.resource.data.keys().hasAll([
+          "uid",
+          "email",
+          "profileCompleted",
+          "createdAt"
+        ])
+        && request.resource.data.keys().hasOnly([
+          "uid",
+          "email",
+          "profileCompleted",
+          "createdAt"
+        ])
+        && request.resource.data.uid == request.auth.uid;
+
+      allow read: if isOwner(userId);
+
+      allow update: if isOwner(userId)
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.email == resource.data.email
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          "profileCompleted",
+          "artistProfileId",
+          "updatedAt"
+        ]);
+
+      allow delete: if false;
+    }
+
+    /*
+     * Public artist identity.
+     *
+     * The document ID is the normalized username.
+     */
+    match /artistProfiles/{username} {
+      allow read: if true;
+
+      allow create: if signedIn()
+        && request.resource.data.keys().hasAll([
+          "uid",
+          "username",
+          "artistName",
+          "genre",
+          "bio",
+          "spotifyUrl",
+          "bandlabUrl",
+          "rapchatUrl",
+          "pic_url",
+          "createdAt",
+          "updatedAt"
+        ])
+        && request.resource.data.keys().hasOnly([
+          "uid",
+          "username",
+          "artistName",
+          "genre",
+          "bio",
+          "spotifyUrl",
+          "bandlabUrl",
+          "rapchatUrl",
+          "pic_url",
+          "createdAt",
+          "updatedAt"
+        ])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.username == username;
+
+      allow update: if signedIn()
+        && resource.data.uid == request.auth.uid
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.username == resource.data.username
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          "artistName",
+          "genre",
+          "bio",
+          "spotifyUrl",
+          "bandlabUrl",
+          "rapchatUrl",
+          "pic_url",
+          "updatedAt"
+        ]);
+
+      allow delete: if signedIn()
+        && resource.data.uid == request.auth.uid;
+    }
+  }
+}
