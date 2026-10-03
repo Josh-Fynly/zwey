@@ -1,309 +1,187 @@
 "use client";
 
 import { useEffect, useState } from "react";
-
 import Link from "next/link";
-
 import {
-collection,
-getDocs
+  collection,
+  getDocs,
 } from "firebase/firestore";
-
 import { db } from "../../lib/firebase";
 
-
-export default function ExplorePage(){
-
-const [artists,setArtists] = useState([]);
-const [loading,setLoading] = useState(true);
-
-
-useEffect(()=>{
-
-fetchArtists();
-
-},[]);
-
-
-
-async function fetchArtists(){
-
-try{
-
-const snapshot = await getDocs(
-collection(db,"users")
-);
-
-
-const users = snapshot.docs.map(doc=>({
-
-id:doc.id,
-...doc.data()
-
-}));
-
-
-setArtists(users);
-
+function getInitials(name = "") {
+  return name
+    .split(" ")
+    .map((part) => part[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
 }
 
-catch(err){
-
-console.error(err);
-
-}
-
-finally{
-
-setLoading(false);
-
-}
-
-}
-
-
-
-
-function initials(name=""){
-
-return name
-.split(" ")
-.map(n=>n[0])
-.slice(0,2)
-.join("")
-.toUpperCase();
-
-}
-
-
-
-
-function avatarColor(username=""){
-
-const colors=[
-
-"bg-blue-500",
-"bg-purple-500",
-"bg-green-500",
-"bg-pink-500",
-"bg-indigo-500",
-"bg-cyan-500"
-
-];
-
-
-let hash=0;
-
-
-for(let i=0;i<username.length;i++){
-
-hash=username.charCodeAt(i)+((hash<<5)-hash);
-
-}
-
-
-return colors[
-Math.abs(hash)%colors.length
-];
-
-
-}
-
-
-
-if(loading){
-
-return(
-
-<div className="min-h-screen flex items-center justify-center">
-
-<p>
-
-Loading artists...
-
-</p>
-
-</div>
-
-)
-
-}
-
-
-
-
-
-return(
-
-<div className="min-h-screen bg-gray-50 p-6">
-
-
-<div className="max-w-6xl mx-auto">
-
-
-<h1 className="text-4xl font-bold mb-2">
-
-Explore Artists
-
-</h1>
-
-
-<p className="text-gray-500 mb-10">
-
-Discover creators on Zwey
-
-</p>
-
-
-
-
-<div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-
-
-{artists.map((artist)=>(
-
-
-
-<Link
-
-
-key={artist.id}
-
-href={`/u/${artist.username}`}
-
-
-
->
-
-
-<div className="bg-white rounded-xl shadow hover:shadow-lg transition p-6 h-full">
-
-
-<div className="flex flex-col items-center">
-
-
-{artist.pic_url ? (
-
-<img
-
-src={artist.pic_url}
-
-alt={artist.artistName}
-
-className="w-24 h-24 rounded-full object-cover mb-4"
-
-/>
-
-):(
-
-
-<div
-
-
-className={`
-
-w-24
-h-24
-rounded-full
-text-white
-font-bold
-text-xl
-flex
-items-center
-justify-center
-mb-4
-
-
-${avatarColor(artist.username)}
-
-`}
-
-
->
-
-{initials(artist.artistName)}
-
-
-</div>
-
-)}
-
-
-
-
-<h2 className="font-bold text-xl">
-
-{artist.artistName}
-
-</h2>
-
-
-
-<p className="text-gray-500">
-
-@{artist.username}
-
-</p>
-
-
-
-
-{artist.genre && (
-
-<div className="mt-3">
-
-
-<span className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-3 py-1 rounded-full text-xs">
-
-{artist.genre}
-
-</span>
-
-
-</div>
-
-)}
-
-
-
-
-{artist.bio && (
-
-<p className="text-sm text-gray-600 mt-4 line-clamp-3 text-center">
-
-
-{artist.bio}
-
-
-</p>
-
-)}
-
-
-
-
-
-
-</div>
-
-</div>
-
-
-</Link>
-
-
-
-))}
-
-
-
-</div>
-
-</div>
-
-</div>
-
-);
-
-
+export default function ExplorePage() {
+  const [artists, setArtists] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchArtists() {
+      try {
+        const snapshot = await getDocs(
+          collection(db, "artistProfiles")
+        );
+
+        if (cancelled) return;
+
+        const profiles = snapshot.docs
+          .map((profileDoc) => ({
+            id: profileDoc.id,
+            ...profileDoc.data(),
+          }))
+          .filter(
+            (artist) =>
+              artist.username &&
+              artist.artistName
+          )
+          .sort((a, b) =>
+            a.artistName.localeCompare(b.artistName)
+          );
+
+        setArtists(profiles);
+      } catch (err) {
+        console.error(
+          "Explore artists load error:",
+          err
+        );
+
+        if (!cancelled) {
+          setError(
+            "We couldn't load artists right now. Please try again."
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    fetchArtists();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-[#08080B] flex items-center justify-center px-6 text-[#F5F5F7]">
+        <div className="text-center">
+          <div
+            className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-4 border-[#272731] border-t-[#8B5CF6]"
+            aria-hidden="true"
+          />
+
+          <p className="text-sm">
+            Discovering artists...
+          </p>
+        </div>
+      </main>
+    );
   }
+
+  return (
+    <main className="min-h-screen bg-[#08080B] px-4 py-8 text-[#F5F5F7] sm:px-6">
+      <div className="mx-auto max-w-6xl">
+        <header className="mb-10">
+          <p className="text-sm font-semibold tracking-[0.2em] text-[#A78BFA] uppercase">
+            Zwey
+          </p>
+
+          <h1 className="mt-3 text-4xl font-bold tracking-tight">
+            Explore artists.
+          </h1>
+
+          <p className="mt-3 max-w-2xl text-[#A1A1AA]">
+            Discover upcoming creators building their identity
+            on Zwey.
+          </p>
+        </header>
+
+        {error && (
+          <div
+            className="rounded-xl border border-[#EF4444]/30 bg-[#EF4444]/10 px-4 py-3 text-sm text-[#FCA5A5]"
+            role="alert"
+          >
+            {error}
+          </div>
+        )}
+
+        {!error && artists.length === 0 && (
+          <div className="rounded-2xl border border-[#272731] bg-[#111116] p-10 text-center">
+            <h2 className="text-xl font-semibold">
+              No artists yet
+            </h2>
+
+            <p className="mt-2 text-[#A1A1AA]">
+              Be one of the first artists to build a profile
+              on Zwey.
+            </p>
+          </div>
+        )}
+
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {artists.map((artist) => (
+            <Link
+              key={artist.id}
+              href={`/u/${artist.username}`}
+              className="group"
+            >
+              <article className="h-full rounded-2xl border border-[#272731] bg-[#111116] p-6 transition duration-200 hover:-translate-y-1 hover:border-[#8B5CF6]/60 hover:bg-[#18181F]">
+                <div className="flex items-start justify-between gap-4">
+                  {artist.pic_url ? (
+                    <img
+                      src={artist.pic_url}
+                      alt={artist.artistName}
+                      className="h-20 w-20 rounded-full border border-[#272731] object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#18181F] text-xl font-bold text-[#A78BFA] ring-1 ring-[#8B5CF6]/30">
+                      {getInitials(
+                        artist.artistName
+                      )}
+                    </div>
+                  )}
+
+                  {artist.genre && (
+                    <span className="rounded-full border border-[#8B5CF6]/30 bg-[#8B5CF6]/10 px-2.5 py-1 text-xs font-medium text-[#A78BFA]">
+                      {artist.genre}
+                    </span>
+                  )}
+                </div>
+
+                <h2 className="mt-6 text-xl font-bold transition group-hover:text-[#A78BFA]">
+                  {artist.artistName}
+                </h2>
+
+                <p className="mt-1 text-sm text-[#71717A]">
+                  @{artist.username}
+                </p>
+
+                {artist.bio && (
+                  <p className="mt-4 line-clamp-3 text-sm leading-6 text-[#A1A1AA]">
+                    {artist.bio}
+                  </p>
+                )}
+
+                <p className="mt-6 text-sm font-medium text-[#8B5CF6]">
+                  View profile →
+                </p>
+              </article>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </main>
+  );
+    }
