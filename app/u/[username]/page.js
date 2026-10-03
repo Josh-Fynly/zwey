@@ -2,15 +2,20 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-
 import {
-  collection,
-  getDocs,
-  query,
-  where,
+  doc,
+  getDoc,
 } from "firebase/firestore";
-
 import { db } from "../../../lib/firebase";
+
+function getInitials(name = "") {
+  return name
+    .split(" ")
+    .map((part) => part[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+}
 
 export default function PublicProfile() {
   const params = useParams();
@@ -19,211 +24,222 @@ export default function PublicProfile() {
   const [artist, setArtist] = useState(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
 
-  // -----------------------------
-  // Fetch artist
-  // -----------------------------
   useEffect(() => {
+    if (!username) return;
+
+    let cancelled = false;
+
     async function fetchArtist() {
+      setLoading(true);
+      setNotFound(false);
+      setError("");
+
       try {
-        const q = query(
-          collection(db, "users"),
-          where("username", "==", username.toLowerCase())
+        const normalizedUsername =
+          username.toLowerCase();
+
+        const profileRef = doc(
+          db,
+          "artistProfiles",
+          normalizedUsername
         );
 
-        const querySnapshot = await getDocs(q);
+        const profileSnapshot =
+          await getDoc(profileRef);
 
-        if (querySnapshot.empty) {
+        if (cancelled) return;
+
+        if (!profileSnapshot.exists()) {
           setNotFound(true);
-          setLoading(false);
           return;
         }
 
-        const userDoc = querySnapshot.docs[0];
-        setArtist(userDoc.data());
+        setArtist(profileSnapshot.data());
       } catch (err) {
-        console.error(err);
+        console.error(
+          "Public profile load error:",
+          err
+        );
+
+        if (!cancelled) {
+          setError(
+            "This artist profile could not be loaded right now."
+          );
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     }
 
-    if (username) fetchArtist();
+    fetchArtist();
+
+    return () => {
+      cancelled = true;
+    };
   }, [username]);
 
-  // -----------------------------
-  // Helpers
-  // -----------------------------
-  function getInitials(name = "") {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .slice(0, 2)
-      .join("")
-      .toUpperCase();
-  }
-
-  function hashColor(str = "") {
-    const colors = [
-      "bg-blue-500",
-      "bg-purple-500",
-      "bg-green-500",
-      "bg-indigo-500",
-      "bg-pink-500",
-      "bg-cyan-500",
-    ];
-
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      hash = str.charCodeAt(i) + ((hash << 5) - hash);
-    }
-
-    return colors[Math.abs(hash) % colors.length];
-  }
-
-  // -----------------------------
-  // Share handler
-  // -----------------------------
   async function handleShare() {
-    const url = window.location.href;
-
     try {
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(
+        window.location.href
+      );
+
       setCopied(true);
 
-      setTimeout(() => setCopied(false), 2000);
+      window.setTimeout(() => {
+        setCopied(false);
+      }, 2000);
     } catch (err) {
-      console.error("Copy failed", err);
+      console.error("Profile share failed:", err);
     }
   }
 
-  // -----------------------------
-  // Loading / Not Found
-  // -----------------------------
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-lg">Loading profile...</p>
-      </div>
+      <main className="min-h-screen bg-[#08080B] flex items-center justify-center px-6 text-[#F5F5F7]">
+        <div className="text-center">
+          <div
+            className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-4 border-[#272731] border-t-[#8B5CF6]"
+            aria-hidden="true"
+          />
+
+          <p className="text-sm">
+            Loading artist profile...
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  if (error) {
+    return (
+      <main className="min-h-screen bg-[#08080B] flex items-center justify-center px-6 text-[#F5F5F7]">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold">
+            Profile unavailable
+          </h1>
+
+          <p className="mt-3 text-[#A1A1AA]">
+            {error}
+          </p>
+        </div>
+      </main>
     );
   }
 
   if (notFound || !artist) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6">
+      <main className="min-h-screen bg-[#08080B] flex items-center justify-center px-6 text-[#F5F5F7]">
         <div className="text-center">
-          <h1 className="text-3xl font-bold mb-4">
+          <p className="text-sm font-semibold tracking-[0.2em] text-[#A78BFA] uppercase">
+            Zwey
+          </p>
+
+          <h1 className="mt-4 text-3xl font-bold">
             Artist not found
           </h1>
-          <p className="text-gray-600">
-            This profile does not exist.
+
+          <p className="mt-3 text-[#A1A1AA]">
+            This artist profile does not exist.
           </p>
         </div>
-      </div>
+      </main>
     );
   }
 
-  // -----------------------------
-  // UI
-  // -----------------------------
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-md p-8">
+    <main className="min-h-screen bg-[#08080B] px-4 py-6 text-[#F5F5F7] sm:px-6">
+      <div className="mx-auto max-w-2xl">
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-semibold tracking-[0.2em] text-[#A78BFA] uppercase">
+            Zwey
+          </p>
 
-        {/* SHARE BUTTON */}
-        <div className="flex justify-end mb-4">
           <button
+            type="button"
             onClick={handleShare}
-            className="px-4 py-2 bg-black text-white rounded-lg text-sm hover:bg-gray-800"
+            className="rounded-lg border border-[#272731] bg-[#111116] px-4 py-2 text-sm font-medium transition hover:border-[#8B5CF6] hover:bg-[#18181F]"
           >
-            {copied ? "Copied!" : "Share Profile"}
+            {copied ? "Copied" : "Share"}
           </button>
         </div>
 
-        {/* PROFILE HEADER */}
-        <div className="flex flex-col items-center text-center">
+        <section className="mt-6 rounded-2xl border border-[#272731] bg-[#111116] p-6 shadow-2xl sm:p-8">
+          <div className="flex flex-col items-center text-center">
+            {artist.pic_url ? (
+              <img
+                src={artist.pic_url}
+                alt={artist.artistName}
+                className="h-32 w-32 rounded-full border border-[#272731] object-cover ring-4 ring-[#8B5CF6]/10"
+              />
+            ) : (
+              <div className="flex h-32 w-32 items-center justify-center rounded-full bg-[#18181F] text-3xl font-bold text-[#A78BFA] ring-1 ring-[#8B5CF6]/40">
+                {getInitials(artist.artistName)}
+              </div>
+            )}
 
-          {/* IMAGE OR INITIALS */}
-          {artist.pic_url ? (
-            <img
-              src={artist.pic_url}
-              alt={artist.artistName}
-              className="w-32 h-32 rounded-full object-cover border mb-6"
-            />
-          ) : (
-            <div
-              className={`w-32 h-32 rounded-full flex items-center justify-center text-white text-3xl font-bold mb-6 ${hashColor(
-                artist.username
-              )}`}
-            >
-              {getInitials(artist.artistName)}
-            </div>
-          )}
+            <h1 className="mt-6 text-4xl font-bold tracking-tight">
+              {artist.artistName}
+            </h1>
 
-          {/* NAME */}
-          <h1 className="text-4xl font-bold">
-            {artist.artistName}
-          </h1>
-
-          {/* USERNAME */}
-          <p className="text-gray-500 mt-2">
-            @{artist.username}
-          </p>
-
-          {/* GENRE BADGE */}
-          {artist.genre && (
-            <div className="mt-4 inline-block bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 py-1 rounded-full text-sm font-medium shadow-md">
-              {artist.genre}
-            </div>
-          )}
-
-          {/* BIO */}
-          {artist.bio && (
-            <p className="mt-6 text-gray-700 max-w-lg">
-              {artist.bio}
+            <p className="mt-2 text-[#A1A1AA]">
+              @{artist.username}
             </p>
-          )}
-        </div>
 
-        {/* LINKS */}
-        <div className="mt-10 space-y-4">
+            {artist.genre && (
+              <span className="mt-4 rounded-full border border-[#8B5CF6]/30 bg-[#8B5CF6]/10 px-4 py-1.5 text-sm font-medium text-[#A78BFA]">
+                {artist.genre}
+              </span>
+            )}
 
-          {artist.spotifyUrl && (
-            <a
-              href={artist.spotifyUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block w-full bg-green-600 hover:bg-green-700 text-white text-center py-3 rounded-lg font-semibold"
-            >
-              Spotify
-            </a>
-          )}
+            {artist.bio && (
+              <p className="mt-6 max-w-lg leading-7 text-[#A1A1AA]">
+                {artist.bio}
+              </p>
+            )}
+          </div>
 
-          {artist.bandlabUrl && (
-            <a
-              href={artist.bandlabUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block w-full bg-blue-600 hover:bg-blue-700 text-white text-center py-3 rounded-lg font-semibold"
-            >
-              BandLab
-            </a>
-          )}
+          <div className="mt-10 space-y-3">
+            {artist.spotifyUrl && (
+              <a
+                href={artist.spotifyUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block rounded-xl border border-[#272731] bg-[#18181F] px-5 py-4 text-center font-semibold transition hover:border-[#8B5CF6] hover:bg-[#8B5CF6]/10"
+              >
+                Listen on Spotify
+              </a>
+            )}
 
-          {artist.rapchatUrl && (
-            <a
-              href={artist.rapchatUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block w-full bg-purple-600 hover:bg-purple-700 text-white text-center py-3 rounded-lg font-semibold"
-            >
-              Rapchat
-            </a>
-          )}
+            {artist.bandlabUrl && (
+              <a
+                href={artist.bandlabUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block rounded-xl border border-[#272731] bg-[#18181F] px-5 py-4 text-center font-semibold transition hover:border-[#8B5CF6] hover:bg-[#8B5CF6]/10"
+              >
+                Find me on BandLab
+              </a>
+            )}
 
-        </div>
+            {artist.rapchatUrl && (
+              <a
+                href={artist.rapchatUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block rounded-xl border border-[#272731] bg-[#18181F] px-5 py-4 text-center font-semibold transition hover:border-[#8B5CF6] hover:bg-[#8B5CF6]/10"
+              >
+                Find me on Rapchat
+              </a>
+            )}
+          </div>
+        </section>
       </div>
-    </div>
+    </main>
   );
-}
+              }
