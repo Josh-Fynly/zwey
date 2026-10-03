@@ -3,19 +3,19 @@
 import { useAuth } from "../../context/AuthContext";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { doc, getDoc } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+} from "firebase/firestore";
 import { db } from "../../lib/firebase";
 
 function getProfileErrorMessage(error) {
   switch (error?.code) {
     case "permission-denied":
-      return "Zwey could not access your profile. Please check your account permissions.";
+      return "Zwey could not access your account data. Please check the Firestore Rules.";
 
     case "unavailable":
       return "Zwey is temporarily unable to reach the database. Check your connection and try again.";
-
-    case "failed-precondition":
-      return "Zwey could not complete the database request. Please try again.";
 
     case "unauthenticated":
       return "Your session is no longer valid. Please log in again.";
@@ -34,7 +34,8 @@ export default function Dashboard() {
 
   const router = useRouter();
 
-  const [profile, setProfile] = useState(null);
+  const [account, setAccount] = useState(null);
+  const [artist, setArtist] = useState(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [profileError, setProfileError] = useState("");
 
@@ -42,40 +43,67 @@ export default function Dashboard() {
     if (authLoading) return;
 
     if (!user) {
-      router.replace("/signup");
+      router.replace("/login");
       return;
     }
 
     let cancelled = false;
 
-    async function loadProfile() {
+    async function loadDashboard() {
       setLoadingProfile(true);
       setProfileError("");
 
       try {
-        const profileRef = doc(db, "users", user.uid);
-        const profileSnapshot = await getDoc(profileRef);
+        const userRef = doc(db, "users", user.uid);
+        const userSnapshot = await getDoc(userRef);
 
         if (cancelled) return;
 
-        if (!profileSnapshot.exists()) {
+        if (!userSnapshot.exists()) {
+          setProfileError(
+            "Your Zwey account record could not be found."
+          );
+          return;
+        }
+
+        const accountData = userSnapshot.data();
+
+        if (!accountData.profileCompleted) {
           router.replace("/onboarding");
           return;
         }
 
-        const profileData = profileSnapshot.data();
-
-        if (!profileData.profileCompleted) {
+        if (!accountData.artistProfileId) {
           router.replace("/onboarding");
           return;
         }
 
-        setProfile(profileData);
+        const artistRef = doc(
+          db,
+          "artistProfiles",
+          accountData.artistProfileId
+        );
+
+        const artistSnapshot = await getDoc(artistRef);
+
+        if (cancelled) return;
+
+        if (!artistSnapshot.exists()) {
+          setProfileError(
+            "Your artist profile could not be found. Please complete your profile again."
+          );
+          return;
+        }
+
+        setAccount(accountData);
+        setArtist(artistSnapshot.data());
       } catch (err) {
-        console.error("Dashboard profile load error:", err);
+        console.error("Dashboard load error:", err);
 
         if (!cancelled) {
-          setProfileError(getProfileErrorMessage(err));
+          setProfileError(
+            getProfileErrorMessage(err)
+          );
         }
       } finally {
         if (!cancelled) {
@@ -84,7 +112,7 @@ export default function Dashboard() {
       }
     }
 
-    loadProfile();
+    loadDashboard();
 
     return () => {
       cancelled = true;
@@ -93,156 +121,170 @@ export default function Dashboard() {
 
   if (authLoading || loadingProfile) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-6">
+      <main className="min-h-screen bg-[#08080B] flex items-center justify-center px-6 text-[#F5F5F7]">
         <div className="text-center">
           <div
-            className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-black"
+            className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-4 border-[#272731] border-t-[#8B5CF6]"
             aria-hidden="true"
           />
 
-          <p className="text-sm font-medium text-gray-700">
-            Loading dashboard...
-          </p>
-
-          <p className="mt-1 text-sm text-gray-500">
-            Please wait a moment.
+          <p className="text-sm font-medium">
+            Loading your studio...
           </p>
         </div>
-      </div>
+      </main>
     );
   }
 
   if (profileError) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-6">
-        <div className="w-full max-w-md rounded-xl border bg-white p-8 text-center shadow-sm">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-red-600">
+      <main className="min-h-screen bg-[#08080B] flex items-center justify-center px-6 text-[#F5F5F7]">
+        <div className="w-full max-w-md rounded-2xl border border-[#272731] bg-[#111116] p-8 text-center">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#EF4444]/10 text-xl font-bold text-[#EF4444]">
             !
           </div>
 
-          <h1 className="mt-4 text-xl font-bold text-gray-900">
+          <h1 className="mt-5 text-2xl font-bold">
             Dashboard unavailable
           </h1>
 
-          <p className="mt-2 text-sm leading-6 text-gray-600">
+          <p className="mt-3 text-sm leading-6 text-[#A1A1AA]">
             {profileError}
           </p>
 
-          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+          <div className="mt-7 flex flex-col gap-3 sm:flex-row">
             <button
               type="button"
               onClick={() => window.location.reload()}
-              className="flex-1 rounded-lg bg-black px-4 py-3 font-semibold text-white transition hover:bg-gray-800"
+              className="flex-1 rounded-xl bg-[#8B5CF6] px-4 py-3 font-semibold transition hover:bg-[#7C3AED]"
             >
               Try Again
             </button>
 
             <button
               type="button"
-              onClick={() => router.replace("/login")}
-              className="flex-1 rounded-lg border border-gray-300 px-4 py-3 font-semibold text-gray-900 transition hover:bg-gray-50"
+              onClick={() => logout()}
+              className="flex-1 rounded-xl border border-[#272731] px-4 py-3 font-semibold text-[#A1A1AA] transition hover:border-[#8B5CF6] hover:text-[#F5F5F7]"
             >
-              Back to Login
+              Log Out
             </button>
           </div>
         </div>
-      </div>
+      </main>
     );
   }
 
-  if (!user || !profile) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-6">
-        <div className="text-center">
-          <h1 className="text-xl font-semibold text-gray-900">
-            Dashboard unavailable
-          </h1>
+  if (!user || !account || !artist) {
+    return null;
+  }
 
-          <p className="mt-2 text-sm text-gray-500">
-            We couldn't find the profile needed for this dashboard.
-          </p>
+  return (
+    <main className="min-h-screen bg-[#08080B] text-[#F5F5F7]">
+      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+        <header className="flex items-center justify-between border-b border-[#272731] pb-5">
+          <div>
+            <p className="text-sm font-semibold tracking-[0.2em] text-[#A78BFA] uppercase">
+              Zwey
+            </p>
+
+            <p className="mt-1 text-sm text-[#71717A]">
+              Artist studio
+            </p>
+          </div>
 
           <button
             type="button"
-            onClick={() => router.replace("/onboarding")}
-            className="mt-5 rounded-lg bg-black px-5 py-3 font-semibold text-white transition hover:bg-gray-800"
+            onClick={logout}
+            className="rounded-lg border border-[#272731] px-4 py-2 text-sm font-medium text-[#A1A1AA] transition hover:border-[#EF4444]/50 hover:text-[#F5F5F7]"
           >
-            Complete Profile
+            Log out
           </button>
-        </div>
-      </div>
-    );
-  }
+        </header>
 
-  const publicProfileUrl = `/u/${profile.username}`;
+        <section className="mt-8 rounded-2xl border border-[#272731] bg-[#111116] p-6 sm:p-8">
+          <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-4">
+              {artist.pic_url ? (
+                <img
+                  src={artist.pic_url}
+                  alt={artist.artistName}
+                  className="h-20 w-20 rounded-full border border-[#272731] object-cover"
+                />
+              ) : (
+                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#18181F] text-xl font-bold text-[#A78BFA] ring-1 ring-[#7C3AED]/40">
+                  {artist.artistName
+                    .split(" ")
+                    .map((part) => part[0])
+                    .slice(0, 2)
+                    .join("")
+                    .toUpperCase()}
+                </div>
+              )}
 
-  return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="mx-auto max-w-4xl">
-        <div className="rounded-xl border bg-white p-8 shadow-sm">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-sm text-gray-500">
-                Zwey Dashboard
-              </p>
+              <div>
+                <p className="text-sm text-[#A1A1AA]">
+                  Welcome back
+                </p>
 
-              <h1 className="mt-1 text-3xl font-bold">
-                Welcome, {profile.artistName}
-              </h1>
+                <h1 className="mt-1 text-2xl font-bold sm:text-3xl">
+                  {artist.artistName}
+                </h1>
 
-              <p className="mt-1 text-gray-500">
-                @{profile.username}
-              </p>
+                <p className="mt-1 text-[#71717A]">
+                  @{artist.username}
+                </p>
+              </div>
             </div>
 
-            <button
-              type="button"
-              onClick={logout}
-              className="rounded-lg bg-red-600 px-4 py-2 font-medium text-white transition hover:bg-red-700"
-            >
-              Logout
-            </button>
+            {artist.genre && (
+              <span className="w-fit rounded-full border border-[#8B5CF6]/30 bg-[#8B5CF6]/10 px-3 py-1 text-sm font-medium text-[#A78BFA]">
+                {artist.genre}
+              </span>
+            )}
           </div>
 
-          <div className="mt-8 grid gap-4 sm:grid-cols-2">
-            <div className="rounded-lg border p-5">
-              <p className="text-sm text-gray-500">
-                Genre
-              </p>
-
-              <p className="mt-1 font-semibold">
-                {profile.genre}
-              </p>
-            </div>
-
-            <div className="rounded-lg border p-5">
-              <p className="text-sm text-gray-500">
-                Account email
-              </p>
-
-              <p className="mt-1 break-all font-semibold">
-                {user.email}
-              </p>
-            </div>
-          </div>
-
-          {profile.bio && (
-            <div className="mt-6 rounded-lg border p-5">
-              <p className="text-sm text-gray-500">
+          {artist.bio && (
+            <div className="mt-8 rounded-xl border border-[#272731] bg-[#18181F] p-5">
+              <p className="text-sm font-medium text-[#A1A1AA]">
                 Bio
               </p>
 
-              <p className="mt-2 text-gray-700">
-                {profile.bio}
+              <p className="mt-2 leading-7 text-[#F5F5F7]">
+                {artist.bio}
               </p>
             </div>
           )}
 
+          <div className="mt-8 grid gap-4 sm:grid-cols-2">
+            <div className="rounded-xl border border-[#272731] bg-[#18181F] p-5">
+              <p className="text-sm text-[#71717A]">
+                Account email
+              </p>
+
+              <p className="mt-2 break-all font-medium">
+                {user.email}
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-[#272731] bg-[#18181F] p-5">
+              <p className="text-sm text-[#71717A]">
+                Profile status
+              </p>
+
+              <p className="mt-2 flex items-center gap-2 font-medium text-[#22C55E]">
+                <span className="h-2 w-2 rounded-full bg-[#22C55E]" />
+                Published
+              </p>
+            </div>
+          </div>
+
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <button
               type="button"
-              onClick={() => router.push(publicProfileUrl)}
-              className="flex-1 rounded-lg bg-black py-3 font-semibold text-white transition hover:bg-gray-800"
+              onClick={() =>
+                router.push(`/u/${artist.username}`)
+              }
+              className="flex-1 rounded-xl bg-[#8B5CF6] py-3.5 font-semibold transition hover:bg-[#7C3AED]"
             >
               View Public Profile
             </button>
@@ -250,13 +292,13 @@ export default function Dashboard() {
             <button
               type="button"
               onClick={() => router.push("/onboarding")}
-              className="flex-1 rounded-lg border border-gray-300 py-3 font-semibold transition hover:bg-gray-50"
+              className="flex-1 rounded-xl border border-[#272731] py-3.5 font-semibold text-[#A1A1AA] transition hover:border-[#8B5CF6] hover:text-[#F5F5F7]"
             >
               Edit Profile
             </button>
           </div>
-        </div>
+        </section>
       </div>
-    </div>
+    </main>
   );
-            }
+                }
