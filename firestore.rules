@@ -11,12 +11,6 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == userId;
     }
 
-    /*
-     * Private account data.
-     *
-     * This document must never become publicly readable because it contains
-     * account information such as email.
-     */
     match /users/{userId} {
       allow create: if isOwner(userId)
         && request.resource.data.keys().hasAll([
@@ -40,19 +34,22 @@ service cloud.firestore {
         && request.resource.data.email == resource.data.email
         && request.resource.data.createdAt == resource.data.createdAt
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          "username",
+          "artistName",
           "profileCompleted",
           "artistProfileId",
-          "updatedAt"
+          "updatedAt",
+          "bio",
+          "genre",
+          "spotifyUrl",
+          "bandlabUrl",
+          "rapchatUrl",
+          "pic_url"
         ]);
 
       allow delete: if false;
     }
 
-    /*
-     * Public artist identity.
-     *
-     * The document ID is the normalized username.
-     */
     match /artistProfiles/{username} {
       allow read: if true;
 
@@ -63,10 +60,6 @@ service cloud.firestore {
           "artistName",
           "genre",
           "bio",
-          "spotifyUrl",
-          "bandlabUrl",
-          "rapchatUrl",
-          "pic_url",
           "createdAt",
           "updatedAt"
         ])
@@ -74,12 +67,19 @@ service cloud.firestore {
           "uid",
           "username",
           "artistName",
-          "genre",
           "bio",
-          "spotifyUrl",
+          "genre",
+          "mainDaw",
           "bandlabUrl",
           "rapchatUrl",
-          "pic_url",
+          "soundtrapUrl",
+          "audiotoolUrl",
+          "spotifyUrl",
+          "appleMusicUrl",
+          "audiomackUrl",
+          "boomplayUrl",
+          "picUrl",
+          "picStoragePath",
           "createdAt",
           "updatedAt"
         ])
@@ -92,17 +92,28 @@ service cloud.firestore {
         && request.resource.data.username == resource.data.username
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           "artistName",
-          "genre",
           "bio",
-          "spotifyUrl",
+          "genre",
+          "mainDaw",
           "bandlabUrl",
           "rapchatUrl",
-          "pic_url",
+          "soundtrapUrl",
+          "audiotoolUrl",
+          "spotifyUrl",
+          "appleMusicUrl",
+          "audiomackUrl",
+          "boomplayUrl",
+          "picUrl",
+          "picStoragePath",
           "updatedAt"
         ]);
 
       allow delete: if signedIn()
         && resource.data.uid == request.auth.uid;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }
