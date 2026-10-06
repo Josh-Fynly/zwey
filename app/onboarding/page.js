@@ -17,15 +17,10 @@ import {
   uploadBytes,
 } from "firebase/storage";
 import { db, storage } from "../../lib/firebase";
-import { getZweyErrorMessage, logZweyError } from "../../lib/errors";
-import Button from "../../components/ui/Button";
-import Input from "../../components/ui/Input";
-import Textarea from "../../components/ui/Textarea";
-import Select from "../../components/ui/Select";
-import Card from "../../components/ui/Card";
-import Alert from "../../components/ui/Alert";
-import LoadingState from "../../components/ui/LoadingState";
-import Avatar from "../../components/ui/Avatar";
+import {
+  getZweyErrorMessage,
+  logZweyError,
+} from "../../lib/errors";
 
 const GENRES = [
   "Hip-Hop",
@@ -61,10 +56,13 @@ export default function Onboarding() {
   const [rapchatUrl, setRapchatUrl] = useState("");
 
   const [picUrl, setPicUrl] = useState("");
-  const [picStoragePath, setPicStoragePath] = useState("");
-  const [selectedImage, setSelectedImage] = useState(null);
+  const [picStoragePath, setPicStoragePath] =
+    useState("");
+  const [selectedImage, setSelectedImage] =
+    useState(null);
 
-  const [currentProfileId, setCurrentProfileId] = useState("");
+  const [currentProfileId, setCurrentProfileId] =
+    useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -80,7 +78,8 @@ export default function Onboarding() {
     async function loadExistingProfile() {
       try {
         const userRef = doc(db, "users", user.uid);
-        const userSnapshot = await getDoc(userRef);
+        const userSnapshot =
+          await getDoc(userRef);
 
         if (!userSnapshot.exists()) {
           if (!cancelled) {
@@ -98,9 +97,7 @@ export default function Onboarding() {
           userData.artistProfileId ||
           "";
 
-        if (!profileId) {
-          return;
-        }
+        if (!profileId) return;
 
         const profileRef = doc(
           db,
@@ -108,27 +105,43 @@ export default function Onboarding() {
           profileId
         );
 
-        const profileSnapshot = await getDoc(profileRef);
+        const profileSnapshot =
+          await getDoc(profileRef);
 
         if (!profileSnapshot.exists()) {
           if (!cancelled) {
-            setArtistName(userData.artistName || "");
-            setUsername(userData.username || "");
+            setArtistName(
+              userData.artistName || ""
+            );
+            setUsername(
+              userData.username || ""
+            );
           }
           return;
         }
 
-        const profileData = profileSnapshot.data();
+        const profileData =
+          profileSnapshot.data();
 
         if (!cancelled) {
           setCurrentProfileId(profileId);
-          setArtistName(profileData.artistName || "");
-          setUsername(profileData.username || profileId);
+          setArtistName(
+            profileData.artistName || ""
+          );
+          setUsername(
+            profileData.username || profileId
+          );
           setBio(profileData.bio || "");
           setGenre(profileData.genre || "");
-          setSpotifyUrl(profileData.spotifyUrl || "");
-          setBandlabUrl(profileData.bandlabUrl || "");
-          setRapchatUrl(profileData.rapchatUrl || "");
+          setSpotifyUrl(
+            profileData.spotifyUrl || ""
+          );
+          setBandlabUrl(
+            profileData.bandlabUrl || ""
+          );
+          setRapchatUrl(
+            profileData.rapchatUrl || ""
+          );
           setPicUrl(
             profileData.picUrl ||
               profileData.pic_url ||
@@ -139,7 +152,10 @@ export default function Onboarding() {
           );
         }
       } catch (err) {
-        logZweyError("onboarding.profile_load", err);
+        logZweyError(
+          "onboarding.profile_load",
+          err
+        );
 
         if (!cancelled) {
           setError(
@@ -181,7 +197,9 @@ export default function Onboarding() {
     setError("");
 
     if (!file.type.startsWith("image/")) {
-      setError("Please choose an image file.");
+      setError(
+        "Please choose an image file."
+      );
       event.target.value = "";
       return;
     }
@@ -324,15 +342,17 @@ export default function Onboarding() {
           uploaded.downloadUrl;
       }
 
-      const userRef =
-        doc(db, "users", user.uid);
+      const userRef = doc(
+        db,
+        "users",
+        user.uid
+      );
 
-      const newProfileRef =
-        doc(
-          db,
-          "artistProfiles",
-          normalizedUsername
-        );
+      const newProfileRef = doc(
+        db,
+        "artistProfiles",
+        normalizedUsername
+      );
 
       const result =
         await runTransaction(
@@ -354,8 +374,7 @@ export default function Onboarding() {
                 newProfileRef
               );
 
-            let oldProfileSnapshot =
-              null;
+            let oldProfileSnapshot = null;
 
             if (
               currentProfileId &&
@@ -529,8 +548,7 @@ export default function Onboarding() {
       }
 
       if (
-        err?.message ===
-        "USERNAME_TAKEN"
+        err?.message === "USERNAME_TAKEN"
       ) {
         setError(
           "That username is already in use. Choose another username."
@@ -557,10 +575,14 @@ export default function Onboarding() {
 
   if (loading || initializing) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-zwey-bg px-6">
-        <LoadingState
-          label="Preparing your artist profile..."
-        />
+      <main className="flex min-h-screen min-h-[100dvh] items-center justify-center bg-zwey-bg px-4 text-zwey-text sm:px-6">
+        <div className="w-full max-w-sm">
+          <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-4 border-zwey-border border-t-zwey-violet" />
+
+          <p className="text-center text-sm text-zwey-muted">
+            Preparing your artist profile...
+          </p>
+        </div>
       </main>
     );
   }
@@ -581,11 +603,11 @@ export default function Onboarding() {
       .toUpperCase() || "ZW";
 
   return (
-    <main className="min-h-screen bg-zwey-bg px-4 py-6 text-zwey-text sm:px-6 sm:py-10">
-      <div className="mx-auto max-w-3xl">
-        <header className="mb-8 flex items-center justify-between gap-4">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-zwey-violetBright">
+    <main className="min-h-screen min-h-[100dvh] overflow-x-hidden bg-zwey-bg px-4 py-5 text-zwey-text sm:px-6 sm:py-8">
+      <div className="mx-auto w-full max-w-3xl">
+        <header className="mb-6 flex min-w-0 items-center justify-between gap-4 sm:mb-8">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-zwey-violetBright sm:tracking-[0.22em]">
               Zwey
             </p>
 
@@ -594,29 +616,30 @@ export default function Onboarding() {
             </p>
           </div>
 
-          <Button
+          <button
             type="button"
-            variant="secondary"
-            size="sm"
             onClick={logout}
+            className="shrink-0 rounded-xl border border-zwey-border bg-zwey-surface px-3.5 py-2.5 text-sm font-medium text-zwey-muted transition hover:border-zwey-violet/60 hover:bg-zwey-elevated hover:text-zwey-text focus:outline-none focus:ring-4 focus:ring-zwey-violet/10 sm:px-4"
           >
             Log out
-          </Button>
+          </button>
         </header>
 
-        <Card className="overflow-hidden p-0">
-          <div className="border-b border-zwey-border px-6 py-8 sm:px-10">
-            <div className="inline-flex rounded-full border border-zwey-violetDeep/40 bg-zwey-violetDeep/10 px-3 py-1 text-xs font-semibold text-zwey-violetBright">
-              {currentProfileId
-                ? "Edit artist profile"
-                : "Create artist profile"}
+        <section className="min-w-0 overflow-hidden rounded-2xl border border-zwey-border bg-zwey-surface shadow-zwey-card sm:rounded-3xl">
+          <div className="border-b border-zwey-border px-5 py-7 sm:px-10 sm:py-8">
+            <div className="inline-flex max-w-full rounded-full border border-zwey-violetDeep/40 bg-zwey-violetDeep/10 px-3 py-1 text-xs font-semibold text-zwey-violetBright">
+              <span className="zwey-break">
+                {currentProfileId
+                  ? "Edit artist profile"
+                  : "Create artist profile"}
+              </span>
             </div>
 
-            <h1 className="mt-5 text-3xl font-bold tracking-tight sm:text-4xl">
+            <h1 className="mt-5 max-w-2xl text-3xl font-bold tracking-tight sm:text-4xl">
               Build your artist identity.
             </h1>
 
-            <p className="mt-3 max-w-2xl leading-7 text-zwey-muted">
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-zwey-muted sm:text-base sm:leading-7">
               Create the identity other artists,
               producers, collaborators and fans
               will discover on Zwey.
@@ -625,22 +648,32 @@ export default function Onboarding() {
 
           <form
             onSubmit={handleSubmit}
-            className="space-y-8 px-6 py-8 sm:px-10"
+            className="space-y-8 px-5 py-7 sm:px-10 sm:py-8"
           >
             {error && (
-              <Alert variant="error">
+              <div
+                className="zwey-break rounded-2xl border border-zwey-error/30 bg-zwey-error/10 px-4 py-3.5 text-sm leading-6 text-red-300"
+                role="alert"
+              >
                 {error}
-              </Alert>
+              </div>
             )}
 
-            <div className="grid gap-8 sm:grid-cols-[160px_1fr] sm:items-start">
-              <div className="flex flex-col items-center">
-                <Avatar
-                  src={displayImage}
-                  alt="Profile preview"
-                  initials={initials}
-                  size="xl"
-                />
+            <div className="grid min-w-0 gap-8 sm:grid-cols-[160px_minmax(0,1fr)] sm:items-start">
+              <div className="flex min-w-0 flex-col items-center">
+                <div className="relative">
+                  {displayImage ? (
+                    <img
+                      src={displayImage}
+                      alt="Profile preview"
+                      className="h-32 w-32 rounded-full border border-zwey-border object-cover ring-4 ring-zwey-violetDeep/10 sm:h-36 sm:w-36"
+                    />
+                  ) : (
+                    <div className="flex h-32 w-32 items-center justify-center rounded-full border border-zwey-border bg-zwey-elevated text-3xl font-bold text-zwey-violetBright ring-4 ring-zwey-violetDeep/10 sm:h-36 sm:w-36">
+                      {initials}
+                    </div>
+                  )}
+                </div>
 
                 <input
                   ref={fileInputRef}
@@ -650,53 +683,60 @@ export default function Onboarding() {
                   className="hidden"
                 />
 
-                <Button
+                <button
                   type="button"
-                  variant="secondary"
-                  size="sm"
-                  className="mt-4"
                   onClick={() =>
                     fileInputRef.current?.click()
                   }
+                  className="mt-4 w-full max-w-[180px] rounded-xl border border-zwey-border bg-zwey-elevated px-4 py-2.5 text-sm font-semibold transition hover:border-zwey-violet/60 hover:bg-zwey-violetDeep/10 focus:outline-none focus:ring-4 focus:ring-zwey-violet/10"
                 >
                   {displayImage
                     ? "Change image"
                     : "Upload image"}
-                </Button>
+                </button>
 
                 {displayImage && (
                   <button
                     type="button"
                     onClick={removeImage}
-                    className="mt-2 text-xs font-medium text-zwey-muted transition hover:text-zwey-error"
+                    className="mt-2 px-2 py-1 text-xs font-medium text-zwey-muted transition hover:text-red-300 focus:outline-none focus:ring-2 focus:ring-zwey-violet/30"
                   >
                     Remove image
                   </button>
                 )}
 
-                <p className="mt-3 text-center text-xs leading-5 text-zwey-muted">
+                <p className="mt-3 max-w-[190px] text-center text-xs leading-5 text-zwey-muted">
                   JPG, PNG, WEBP or other image
                   formats up to 5 MB.
                 </p>
               </div>
 
-              <div className="space-y-6">
-                <Input
-                  id="artistName"
-                  label="Artist name"
-                  type="text"
-                  value={artistName}
-                  onChange={(event) =>
-                    setArtistName(
-                      event.target.value
-                    )
-                  }
-                  placeholder="Your artist name"
-                  required
-                  autoComplete="name"
-                />
+              <div className="min-w-0 space-y-6">
+                <div className="min-w-0">
+                  <label
+                    htmlFor="artistName"
+                    className="mb-2 block text-sm font-semibold"
+                  >
+                    Artist name
+                  </label>
 
-                <div>
+                  <input
+                    id="artistName"
+                    type="text"
+                    value={artistName}
+                    onChange={(event) =>
+                      setArtistName(
+                        event.target.value
+                      )
+                    }
+                    placeholder="Your artist name"
+                    className="w-full min-w-0 rounded-xl border border-zwey-border bg-zwey-elevated px-4 py-3.5 text-zwey-text outline-none transition placeholder:text-zinc-600 focus:border-zwey-violet focus:ring-4 focus:ring-zwey-violet/10"
+                    required
+                    autoComplete="name"
+                  />
+                </div>
+
+                <div className="min-w-0">
                   <label
                     htmlFor="username"
                     className="mb-2 block text-sm font-semibold"
@@ -704,8 +744,8 @@ export default function Onboarding() {
                     Username
                   </label>
 
-                  <div className="flex overflow-hidden rounded-xl border border-zwey-border bg-zwey-elevated transition focus-within:border-zwey-violet focus-within:ring-4 focus-within:ring-zwey-violet/10">
-                    <span className="flex items-center pl-4 text-zwey-muted">
+                  <div className="flex min-w-0 overflow-hidden rounded-xl border border-zwey-border bg-zwey-elevated transition focus-within:border-zwey-violet focus-within:ring-4 focus-within:ring-zwey-violet/10">
+                    <span className="flex shrink-0 items-center pl-4 text-zwey-muted">
                       @
                     </span>
 
@@ -714,79 +754,92 @@ export default function Onboarding() {
                       type="text"
                       value={username}
                       onChange={(event) =>
-                        setUsername(
-                          event.target.value
-                            .toLowerCase()
-                            .replace(
-                              /[^a-z0-9_]/g,
-                              ""
-                            )
-                        )
-                      }
-                      placeholder="yourname"
-                      className="min-w-0 flex-1 bg-transparent px-2 py-3.5 text-zwey-text outline-none placeholder:text-zinc-600"
-                      required
-                      minLength={3}
-                      maxLength={30}
-                      autoComplete="username"
-                    />
-                  </div>
+setUsername(
+event.target.value
+.toLowerCase()
+.replace(
+/[^a-z0-9_]/g,
+""
+)
+)
+}
+placeholder="yourname"
+className="min-w-0 flex-1 bg-transparent px-2 py-3.5 text-zwey-text outline-none placeholder:text-zinc-600"
+required
+minLength={3}
+maxLength={30}
 
-                  <p className="mt-2 text-xs text-zwey-muted">
-                    3–30 characters. Letters,
-                    numbers and underscores only.
-                  </p>
-                </div>
+autoComplete="username"
+/>
+</div>
 
-                <Select
-                  id="genre"
-                  label="Genre"
-                  value={genre}
-                  onChange={(event) =>
-                    setGenre(event.target.value)
-                  }
-                  required
-                >
-                  <option
-                    value=""
-                    disabled
-                  >
-                    Select your genre
-                  </option>
+<p className="mt-2 text-xs leading-5 text-zwey-muted">
+3-30 characters. Letters, numbers and underscores only.
+</p>
+</div>
 
-                  {GENRES.map((item) => (
-                    <option
-                      key={item}
-                      value={item}
-                    >
-                      {item}
-                    </option>
-                  ))}
-                </Select>
+<div className="min-w-0">
+<label
+htmlFor="genre"
+className="mb-2 block text-sm font-semibold"
+>
+Genre
+</label>
 
-                <div>
-                  <div className="mb-2 flex items-center justify-between">
-                    <label
-                      htmlFor="bio"
-                      className="block text-sm font-semibold"
-                    >
-                      Short bio
-                    </label>
+<select
+id="genre"
+value={genre}
+onChange={(event) =>
+setGenre(
+event.target.value
+)
+}
+className="W-full min-w-0 appearance-none rounded-xl border border-zwey-border bg-zwey-elevated px-4 py-3.5 text-zwey-text outline-none transition focus:border-zwey-violet focus:ring-4 focus:ring-zwey-violet/10"
+required
+>
+<option
+value=""
+disabled
+>
+Select your genre
+</option>
 
-                    <span className="text-xs text-zwey-muted">
-                      {bio.length}/300
-                    </span>
-                  </div>
+{GENRES.map((item) => (
+<option
+key={item}
+value={item}
+>
+{item}
+</option>
+))}
+</select>
+</div>
 
-                  <Textarea
-                    id="bio"
-                    value={bio}
+<div className="min-w-0">
+<div className="mb-2 flex min-w-0 items-center justify-between gap-4">
+<label
+htmlFor="bio"
+className="block text-sm font-semibold"
+>
+Short bio
+</label>
+
+<span
+className="shrink-0 text-xs text-zwey-muted">
+{bio.length}/300
+</span>
+</div>
+
+<textarea
+id="bio"
+value={bio}
 onChange={(event) =>
 setBio(
 event.target.value
 )
 }
 placeholder="Tell people a little about your sound."
+className="min-h-[140px] w-full min-w-0 resize-y rounded-xl border border-zwey-border bg-zwey-elevated px-4 py-3.5 text-zwey-text outline-none transition placeholder:text-zinc-600 focus:border-zwey-violet focus:ring-4 focus:ring-zwey-violet/10"
 maxLength={300}
 />
 </div>
@@ -804,8 +857,8 @@ Connect people to where your music already lives.
 </p>
 </div>
 
-<div className="grid gap-4">
-<Input
+<div className="grid min-w-0 gap-4">
+<input
 type="url"
 value={spotifyUrl}
 onChange={(event) =>
@@ -814,9 +867,10 @@ event.target.value
 )
 }
 placeholder="Spotify URL"
+className="w-full min-w-0 rounded-xl border border-zwey-border bg-zwey-elevated px-4 py-3.5 text-zwey-text outline-none transition placeholder:text-zinc-600 focus:border-zwey-violet focus:ring-4 focus:ring-zwey-violet/10"
 />
 
-<Input
+<input
 type="url"
 value={bandlabUrl}
 onChange={(event) =>
@@ -825,9 +879,10 @@ event.target.value
 )
 }
 placeholder="BandLab URL"
+className="w-full min-w-0 rounded-xl border border-zwey-border bg-zwey-elevated px-4 py-3.5 text-zwey-text outline-none transition placeholder:text-zinc-600 focus:border-zwey-violet focus:ring-4 focus:ring-zwey-violet/10"
 />
 
-<Input
+<input
 type="url"
 value={rapchatUrl}
 onChange={(event) =>
@@ -836,26 +891,26 @@ event.target.value
 )
 }
 placeholder="Rapchat URL"
+className="w-full min-w-0 rounded-xl border border-zwey-border bg-zwey-elevated px-4 py-3.5 text-zwey-text outline-none transition placeholder:text-zinc-600 focus:border-zwey-violet focus:ring-4 focus:ring-zwey-violet/10"
 />
 </div>
 </div>
 
 <div className="border-t border-zwey-border pt-8">
-<Button
+<button
 type="submit"
-variant="primary"
-size="lg"
-fullWidth
-loading={saving}
 disabled={saving}
+className="w-full rounded-xl bg-zwey-violet px-5 py-3.5 text-sm font-bold text-white shadow-zwey-accent transition hover:bg-zwey-violetDeep focus:outline-none focus:ring-4 focus:ring-zwey-violet/20 disabled:cursor-not-allowed disabled:opacity-50 sm:py-4"
 >
-{currentProfileId
+{saving
+? "Saving profile..."
+: currentProfileId
 ? "Save Changes"
 : "Create Artist Profile"}
-</Button>
+</button>
 </div>
 </form>
-</Card>
+</section>
 </div>
 </main>
 );
