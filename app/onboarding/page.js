@@ -17,6 +17,15 @@ import {
   uploadBytes,
 } from "firebase/storage";
 import { db, storage } from "../../lib/firebase";
+import { getZweyErrorMessage, logZweyError } from "../../lib/errors";
+import Button from "../../components/ui/Button";
+import Input from "../../components/ui/Input";
+import Textarea from "../../components/ui/Textarea";
+import Select from "../../components/ui/Select";
+import Card from "../../components/ui/Card";
+import Alert from "../../components/ui/Alert";
+import LoadingState from "../../components/ui/LoadingState";
+import Avatar from "../../components/ui/Avatar";
 
 const GENRES = [
   "Hip-Hop",
@@ -32,25 +41,6 @@ const GENRES = [
 ];
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
-
-function getFirestoreErrorMessage(error) {
-  switch (error?.code) {
-    case "permission-denied":
-      return "Zwey could not save your profile because the database denied the request. Confirm that the latest Firestore Rules are published.";
-
-    case "unavailable":
-      return "Zwey could not reach the database. Check your connection and try again.";
-
-    case "failed-precondition":
-      return "Zwey could not complete the database operation. Please try again.";
-
-    case "network-request-failed":
-      return "Network error. Check your connection and try again.";
-
-    default:
-      return "We could not complete your profile setup. Please try again.";
-  }
-}
 
 export default function Onboarding() {
   const router = useRouter();
@@ -149,14 +139,14 @@ export default function Onboarding() {
           );
         }
       } catch (err) {
-        console.error(
-          "Onboarding profile load error:",
-          err
-        );
+        logZweyError("onboarding.profile_load", err);
 
         if (!cancelled) {
           setError(
-            "We could not load your profile data. Please try again."
+            getZweyErrorMessage(
+              err,
+              "profile-load"
+            )
           );
         }
       } finally {
@@ -176,7 +166,9 @@ export default function Onboarding() {
   useEffect(() => {
     return () => {
       if (previewUrlRef.current) {
-        URL.revokeObjectURL(previewUrlRef.current);
+        URL.revokeObjectURL(
+          previewUrlRef.current
+        );
       }
     };
   }, []);
@@ -195,16 +187,21 @@ export default function Onboarding() {
     }
 
     if (file.size > MAX_IMAGE_SIZE) {
-      setError("Profile images must be 5 MB or smaller.");
+      setError(
+        "Profile images must be 5 MB or smaller."
+      );
       event.target.value = "";
       return;
     }
 
     if (previewUrlRef.current) {
-      URL.revokeObjectURL(previewUrlRef.current);
+      URL.revokeObjectURL(
+        previewUrlRef.current
+      );
     }
 
-    const previewUrl = URL.createObjectURL(file);
+    const previewUrl =
+      URL.createObjectURL(file);
 
     previewUrlRef.current = previewUrl;
 
@@ -214,7 +211,9 @@ export default function Onboarding() {
 
   function removeImage() {
     if (previewUrlRef.current) {
-      URL.revokeObjectURL(previewUrlRef.current);
+      URL.revokeObjectURL(
+        previewUrlRef.current
+      );
       previewUrlRef.current = "";
     }
 
@@ -232,7 +231,8 @@ export default function Onboarding() {
         .split(".")
         .pop()
         ?.toLowerCase()
-        .replace(/[^a-z0-9]/g, "") || "jpg";
+        .replace(/[^a-z0-9]/g, "") ||
+      "jpg";
 
     const fileName =
       `${Date.now()}-${crypto.randomUUID()}.${extension}`;
@@ -240,12 +240,18 @@ export default function Onboarding() {
     const storagePath =
       `profile-images/${user.uid}/${fileName}`;
 
-    const storageRef = ref(storage, storagePath);
+    const storageRef =
+      ref(storage, storagePath);
 
-    await uploadBytes(storageRef, file, {
-      contentType: file.type,
-      cacheControl: "public,max-age=31536000",
-    });
+    await uploadBytes(
+      storageRef,
+      file,
+      {
+        contentType: file.type,
+        cacheControl:
+          "public,max-age=31536000",
+      }
+    );
 
     const downloadUrl =
       await getDownloadURL(storageRef);
@@ -260,25 +266,32 @@ export default function Onboarding() {
     event.preventDefault();
 
     if (!user) {
-      setError("Your session has expired. Please log in again.");
+      setError(
+        "Your session has expired. Please log in again."
+      );
       return;
     }
 
     setError("");
 
-    const normalizedUsername = username
-      .trim()
-      .toLowerCase();
+    const normalizedUsername =
+      username.trim().toLowerCase();
 
     const normalizedArtistName =
       artistName.trim();
 
     if (!normalizedArtistName) {
-      setError("Artist name is required.");
+      setError(
+        "Artist name is required."
+      );
       return;
     }
 
-    if (!/^[a-z0-9_]{3,30}$/.test(normalizedUsername)) {
+    if (
+      !/^[a-z0-9_]{3,30}$/.test(
+        normalizedUsername
+      )
+    ) {
       setError(
         "Username must be 3–30 characters and contain only letters, numbers, or underscores."
       );
@@ -286,7 +299,9 @@ export default function Onboarding() {
     }
 
     if (!genre) {
-      setError("Please select a genre.");
+      setError(
+        "Please select a genre."
+      );
       return;
     }
 
@@ -298,7 +313,9 @@ export default function Onboarding() {
     try {
       if (selectedImage) {
         const uploaded =
-          await uploadProfileImage(selectedImage);
+          await uploadProfileImage(
+            selectedImage
+          );
 
         uploadedStoragePath =
           uploaded.storagePath;
@@ -307,123 +324,162 @@ export default function Onboarding() {
           uploaded.downloadUrl;
       }
 
-      const userRef = doc(db, "users", user.uid);
+      const userRef =
+        doc(db, "users", user.uid);
 
-      const newProfileRef = doc(
-        db,
-        "artistProfiles",
-        normalizedUsername
-      );
+      const newProfileRef =
+        doc(
+          db,
+          "artistProfiles",
+          normalizedUsername
+        );
 
       const result =
-        await runTransaction(db, async (transaction) => {
-          const userSnapshot =
-            await transaction.get(userRef);
+        await runTransaction(
+          db,
+          async (transaction) => {
+            const userSnapshot =
+              await transaction.get(
+                userRef
+              );
 
-          if (!userSnapshot.exists()) {
-            throw new Error("ACCOUNT_NOT_FOUND");
-          }
+            if (!userSnapshot.exists()) {
+              throw new Error(
+                "ACCOUNT_NOT_FOUND"
+              );
+            }
 
-          const userData = userSnapshot.data();
+            const newProfileSnapshot =
+              await transaction.get(
+                newProfileRef
+              );
 
-          const newProfileSnapshot =
-            await transaction.get(newProfileRef);
+            let oldProfileSnapshot =
+              null;
 
-          let oldProfileSnapshot = null;
+            if (
+              currentProfileId &&
+              currentProfileId !==
+                normalizedUsername
+            ) {
+              const oldProfileRef =
+                doc(
+                  db,
+                  "artistProfiles",
+                  currentProfileId
+                );
 
-          if (
-            currentProfileId &&
-            currentProfileId !== normalizedUsername
-          ) {
-            const oldProfileRef = doc(
-              db,
-              "artistProfiles",
-              currentProfileId
+              oldProfileSnapshot =
+                await transaction.get(
+                  oldProfileRef
+                );
+            }
+
+            if (
+              newProfileSnapshot.exists() &&
+              newProfileSnapshot.data()
+                .uid !== user.uid
+            ) {
+              throw new Error(
+                "USERNAME_TAKEN"
+              );
+            }
+
+            const existingProfile =
+              newProfileSnapshot.exists()
+                ? newProfileSnapshot.data()
+                : {};
+
+            const finalPicUrl =
+              uploadedDownloadUrl ||
+              (selectedImage === null &&
+              !picUrl
+                ? ""
+                : picUrl);
+
+            const finalPicStoragePath =
+              uploadedStoragePath ||
+              (selectedImage === null &&
+              !picUrl
+                ? ""
+                : picStoragePath);
+
+            const profileData = {
+              uid: user.uid,
+              username:
+                normalizedUsername,
+              artistName:
+                normalizedArtistName,
+              genre,
+              bio: bio.trim(),
+              spotifyUrl:
+                spotifyUrl.trim(),
+              bandlabUrl:
+                bandlabUrl.trim(),
+              rapchatUrl:
+                rapchatUrl.trim(),
+              picUrl: finalPicUrl,
+              picStoragePath:
+                finalPicStoragePath,
+              createdAt:
+                existingProfile.createdAt ||
+                serverTimestamp(),
+              updatedAt:
+                serverTimestamp(),
+            };
+
+            transaction.set(
+              newProfileRef,
+              profileData,
+              { merge: true }
             );
 
-            oldProfileSnapshot =
-              await transaction.get(oldProfileRef);
-          }
+            if (
+              oldProfileSnapshot?.exists() &&
+              oldProfileSnapshot.data()
+                .uid === user.uid
+            ) {
+              transaction.delete(
+                oldProfileSnapshot.ref
+              );
+            }
 
-          if (
-            newProfileSnapshot.exists() &&
-            newProfileSnapshot.data().uid !== user.uid
-          ) {
-            throw new Error("USERNAME_TAKEN");
-          }
-
-          const existingProfile =
-            newProfileSnapshot.exists()
-              ? newProfileSnapshot.data()
-              : {};
-
-          const finalPicUrl =
-            uploadedDownloadUrl ||
-            (selectedImage === null && !picUrl
-              ? ""
-              : picUrl);
-
-          const finalPicStoragePath =
-            uploadedStoragePath ||
-            (selectedImage === null && !picUrl
-              ? ""
-              : picStoragePath);
-
-          const profileData = {
-            uid: user.uid,
-            username: normalizedUsername,
-            artistName: normalizedArtistName,
-            genre,
-            bio: bio.trim(),
-            spotifyUrl: spotifyUrl.trim(),
-            bandlabUrl: bandlabUrl.trim(),
-            rapchatUrl: rapchatUrl.trim(),
-            picUrl: finalPicUrl,
-            picStoragePath: finalPicStoragePath,
-            createdAt:
-              existingProfile.createdAt ||
-              serverTimestamp(),
-            updatedAt: serverTimestamp(),
-          };
-
-          transaction.set(
-            newProfileRef,
-            profileData,
-            { merge: true }
-          );
-
-          if (
-            oldProfileSnapshot?.exists() &&
-            oldProfileSnapshot.data().uid === user.uid
-          ) {
-            transaction.delete(
-              oldProfileSnapshot.ref
+            transaction.update(
+              userRef,
+              {
+                username:
+                  normalizedUsername,
+                artistName:
+                  normalizedArtistName,
+                profileCompleted: true,
+                updatedAt:
+                  serverTimestamp(),
+                artistProfileId:
+                  deleteField(),
+                bio: deleteField(),
+                genre: deleteField(),
+                spotifyUrl:
+                  deleteField(),
+                bandlabUrl:
+                  deleteField(),
+                rapchatUrl:
+                  deleteField(),
+                pic_url:
+                  deleteField(),
+                picUrl:
+                  deleteField(),
+              }
             );
+
+            return {
+              previousPicStoragePath:
+                existingProfile.picStoragePath ||
+                picStoragePath ||
+                "",
+              finalPicStoragePath,
+            };
           }
-
-          transaction.update(userRef, {
-            username: normalizedUsername,
-            artistName: normalizedArtistName,
-            profileCompleted: true,
-            updatedAt: serverTimestamp(),
-            artistProfileId: deleteField(),
-            bio: deleteField(),
-            genre: deleteField(),
-            spotifyUrl: deleteField(),
-            bandlabUrl: deleteField(),
-            rapchatUrl: deleteField(),
-            pic_url: deleteField(),
-            picUrl: deleteField(),
-          });
-
-          return {
-            previousPicStoragePath:
-              existingProfile.picStoragePath ||
-              picStoragePath ||
-              "",
-            finalPicStoragePath,
-          };
-        });
+        );
 
       if (
         result.previousPicStoragePath &&
@@ -438,8 +494,8 @@ export default function Onboarding() {
             )
           );
         } catch (cleanupError) {
-          console.error(
-            "Previous profile image cleanup failed:",
+          logZweyError(
+            "onboarding.previous_image_cleanup",
             cleanupError
           );
         }
@@ -447,40 +503,51 @@ export default function Onboarding() {
 
       router.replace("/dashboard");
     } catch (err) {
-      console.error(
-        "Onboarding profile save error:",
+      logZweyError(
+        "onboarding.profile_save",
         err
       );
 
       if (
         uploadedStoragePath &&
-        uploadedStoragePath !== picStoragePath
+        uploadedStoragePath !==
+          picStoragePath
       ) {
         try {
           await deleteObject(
-            ref(storage, uploadedStoragePath)
+            ref(
+              storage,
+              uploadedStoragePath
+            )
           );
         } catch (cleanupError) {
-          console.error(
-            "Uploaded profile image cleanup failed:",
+          logZweyError(
+            "onboarding.upload_cleanup",
             cleanupError
           );
         }
       }
 
-      if (err?.message === "USERNAME_TAKEN") {
+      if (
+        err?.message ===
+        "USERNAME_TAKEN"
+      ) {
         setError(
           "That username is already in use. Choose another username."
         );
       } else if (
-        err?.message === "ACCOUNT_NOT_FOUND"
+        err?.message ===
+        "ACCOUNT_NOT_FOUND"
       ) {
         setError(
           "Your account record could not be found. Please log out and sign in again."
         );
       } else {
         setError(
-          getFirestoreErrorMessage(err)
+          getZweyErrorMessage(
+            err,
+            "profile-save"
+          )
         );
       }
     } finally {
@@ -490,17 +557,10 @@ export default function Onboarding() {
 
   if (loading || initializing) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#08080B] px-6 text-[#F5F5F7]">
-        <div className="text-center">
-          <div
-            className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-4 border-[#272731] border-t-[#8B5CF6]"
-            aria-hidden="true"
-          />
-
-          <p className="text-sm text-[#A1A1AA]">
-            Preparing your artist profile...
-          </p>
-        </div>
+      <main className="flex min-h-screen items-center justify-center bg-zwey-bg px-6">
+        <LoadingState
+          label="Preparing your artist profile..."
+        />
       </main>
     );
   }
@@ -509,10 +569,7 @@ export default function Onboarding() {
     return null;
   }
 
-  const displayImage =
-    picUrl && picUrl.startsWith("blob:")
-      ? picUrl
-      : picUrl;
+  const displayImage = picUrl || "";
 
   const initials =
     artistName
@@ -524,31 +581,32 @@ export default function Onboarding() {
       .toUpperCase() || "ZW";
 
   return (
-    <main className="min-h-screen bg-[#08080B] px-4 py-6 text-[#F5F5F7] sm:px-6 sm:py-10">
+    <main className="min-h-screen bg-zwey-bg px-4 py-6 text-zwey-text sm:px-6 sm:py-10">
       <div className="mx-auto max-w-3xl">
-        <header className="mb-8 flex items-center justify-between">
+        <header className="mb-8 flex items-center justify-between gap-4">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#A78BFA]">
+            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-zwey-violetBright">
               Zwey
             </p>
 
-            <p className="mt-1 text-sm text-[#71717A]">
+            <p className="mt-1 text-sm text-zwey-muted">
               Artist identity
             </p>
           </div>
 
-          <button
+          <Button
             type="button"
+            variant="secondary"
+            size="sm"
             onClick={logout}
-            className="rounded-xl border border-[#272731] bg-[#111116] px-4 py-2.5 text-sm font-medium text-[#A1A1AA] transition hover:border-[#8B5CF6]/60 hover:text-[#F5F5F7]"
           >
             Log out
-          </button>
+          </Button>
         </header>
 
-        <section className="overflow-hidden rounded-3xl border border-[#272731] bg-[#111116] shadow-2xl shadow-black/30">
-          <div className="border-b border-[#272731] px-6 py-8 sm:px-10">
-            <div className="inline-flex rounded-full border border-[#8B5CF6]/30 bg-[#8B5CF6]/10 px-3 py-1 text-xs font-semibold text-[#A78BFA]">
+        <Card className="overflow-hidden p-0">
+          <div className="border-b border-zwey-border px-6 py-8 sm:px-10">
+            <div className="inline-flex rounded-full border border-zwey-violetDeep/40 bg-zwey-violetDeep/10 px-3 py-1 text-xs font-semibold text-zwey-violetBright">
               {currentProfileId
                 ? "Edit artist profile"
                 : "Create artist profile"}
@@ -558,9 +616,10 @@ export default function Onboarding() {
               Build your artist identity.
             </h1>
 
-            <p className="mt-3 max-w-2xl leading-7 text-[#A1A1AA]">
-              Create the identity other artists, producers,
-              collaborators and fans will discover on Zwey.
+            <p className="mt-3 max-w-2xl leading-7 text-zwey-muted">
+              Create the identity other artists,
+              producers, collaborators and fans
+              will discover on Zwey.
             </p>
           </div>
 
@@ -569,29 +628,19 @@ export default function Onboarding() {
             className="space-y-8 px-6 py-8 sm:px-10"
           >
             {error && (
-              <div
-                className="rounded-2xl border border-[#EF4444]/30 bg-[#EF4444]/10 px-4 py-3.5 text-sm leading-6 text-[#FCA5A5]"
-                role="alert"
-              >
+              <Alert variant="error">
                 {error}
-              </div>
+              </Alert>
             )}
 
             <div className="grid gap-8 sm:grid-cols-[160px_1fr] sm:items-start">
               <div className="flex flex-col items-center">
-                <div className="relative">
-                  {displayImage ? (
-                    <img
-                      src={displayImage}
-                      alt="Profile preview"
-                      className="h-36 w-36 rounded-full border border-[#272731] object-cover ring-4 ring-[#8B5CF6]/10"
-                    />
-                  ) : (
-                    <div className="flex h-36 w-36 items-center justify-center rounded-full border border-[#272731] bg-[#18181F] text-3xl font-bold text-[#A78BFA] ring-4 ring-[#8B5CF6]/10">
-                      {initials}
-                    </div>
-                  )}
-                </div>
+                <Avatar
+                  src={displayImage}
+                  alt="Profile preview"
+                  initials={initials}
+                  size="xl"
+                />
 
                 <input
                   ref={fileInputRef}
@@ -601,56 +650,51 @@ export default function Onboarding() {
                   className="hidden"
                 />
 
-                <button
+                <Button
                   type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="mt-4"
                   onClick={() =>
                     fileInputRef.current?.click()
                   }
-                  className="mt-4 rounded-xl border border-[#272731] bg-[#18181F] px-4 py-2.5 text-sm font-semibold transition hover:border-[#8B5CF6]/60 hover:bg-[#8B5CF6]/10"
                 >
                   {displayImage
                     ? "Change image"
                     : "Upload image"}
-                </button>
+                </Button>
 
                 {displayImage && (
                   <button
                     type="button"
                     onClick={removeImage}
-                    className="mt-2 text-xs font-medium text-[#71717A] transition hover:text-[#FCA5A5]"
+                    className="mt-2 text-xs font-medium text-zwey-muted transition hover:text-zwey-error"
                   >
                     Remove image
                   </button>
                 )}
 
-                <p className="mt-3 text-center text-xs leading-5 text-[#71717A]">
-                  JPG, PNG, WEBP or other image formats
-                  up to 5 MB.
+                <p className="mt-3 text-center text-xs leading-5 text-zwey-muted">
+                  JPG, PNG, WEBP or other image
+                  formats up to 5 MB.
                 </p>
               </div>
 
               <div className="space-y-6">
-                <div>
-                  <label
-                    htmlFor="artistName"
-                    className="mb-2 block text-sm font-semibold"
-                  >
-                    Artist name
-                  </label>
-
-                  <input
-                    id="artistName"
-                    type="text"
-                    value={artistName}
-                    onChange={(event) =>
-                      setArtistName(event.target.value)
-                    }
-                    placeholder="Your artist name"
-                    className="w-full rounded-xl border border-[#272731] bg-[#18181F] px-4 py-3.5 text-[#F5F5F7] outline-none transition placeholder:text-[#52525B] focus:border-[#8B5CF6] focus:ring-4 focus:ring-[#8B5CF6]/10"
-                    required
-                    autoComplete="name"
-                  />
-                </div>
+                <Input
+                  id="artistName"
+                  label="Artist name"
+                  type="text"
+                  value={artistName}
+                  onChange={(event) =>
+                    setArtistName(
+                      event.target.value
+                    )
+                  }
+                  placeholder="Your artist name"
+                  required
+                  autoComplete="name"
+                />
 
                 <div>
                   <label
@@ -660,8 +704,8 @@ export default function Onboarding() {
                     Username
                   </label>
 
-                  <div className="flex overflow-hidden rounded-xl border border-[#272731] bg-[#18181F] transition focus-within:border-[#8B5CF6] focus-within:ring-4 focus-within:ring-[#8B5CF6]/10">
-                    <span className="flex items-center pl-4 text-[#71717A]">
+                  <div className="flex overflow-hidden rounded-xl border border-zwey-border bg-zwey-elevated transition focus-within:border-zwey-violet focus-within:ring-4 focus-within:ring-zwey-violet/10">
+                    <span className="flex items-center pl-4 text-zwey-muted">
                       @
                     </span>
 
@@ -673,11 +717,14 @@ export default function Onboarding() {
                         setUsername(
                           event.target.value
                             .toLowerCase()
-                            .replace(/[^a-z0-9_]/g, "")
+                            .replace(
+                              /[^a-z0-9_]/g,
+                              ""
+                            )
                         )
                       }
                       placeholder="yourname"
-                      className="min-w-0 flex-1 bg-transparent px-2 py-3.5 text-[#F5F5F7] outline-none placeholder:text-[#52525B]"
+                      className="min-w-0 flex-1 bg-transparent px-2 py-3.5 text-zwey-text outline-none placeholder:text-zinc-600"
                       required
                       minLength={3}
                       maxLength={30}
@@ -685,111 +732,131 @@ export default function Onboarding() {
                     />
                   </div>
 
-                  <p className="mt-2 text-xs text-[#71717A]">
-                    3–30 characters. Letters, numbers and
-                    underscores only.
+                  <p className="mt-2 text-xs text-zwey-muted">
+                    3–30 characters. Letters,
+                    numbers and underscores only.
                   </p>
                 </div>
 
-                <div>
-                  <label
-                    htmlFor="genre"
-                    className="mb-2 block text-sm font-semibold"
+                <Select
+                  id="genre"
+                  label="Genre"
+                  value={genre}
+                  onChange={(event) =>
+                    setGenre(event.target.value)
+                  }
+                  required
+                >
+                  <option
+                    value=""
+                    disabled
                   >
-                    Genre
-                  </label>
+                    Select your genre
+                  </option>
 
-                  <select
-                    id="genre"
-                    value={genre}
-                    onChange={(event) =>
-                      setGenre(event.target.value)
-                    }
-                    className="w-full appearance-none rounded-xl border border-[#272731] bg-[#18181F] px-4 py-3.5 text-[#F5F5F7] outline-none transition focus:border-[#8B5CF6] focus:ring-4 focus:ring-[#8B5CF6]/10"
-                    required
->
-<option value="" disabled>
-Select your genre
-</option>
-{GENRES.map((item) => (
-<option key={item} value={item}>
-{item}
-</option>
-))}
-</select>
-</div>
+                  {GENRES.map((item) => (
+                    <option
+                      key={item}
+                      value={item}
+                    >
+                      {item}
+                    </option>
+                  ))}
+                </Select>
 
-<div>
-<div className="mb-2 flex items-center justify-between">
-<label htmlFor="bio" className="block text-sm font-semibold">
-Short bio
-</label>
-<span className="text-xs text-[#71717A]">
-{bio.length}/300
-</span>
-</div>
+                <div>
+                  <div className="mb-2 flex items-center justify-between">
+                    <label
+                      htmlFor="bio"
+                      className="block text-sm font-semibold"
+                    >
+                      Short bio
+                    </label>
 
-<textarea
-id="bio"
-value={bio}
-onChange={(event) => setBio(event.target.value)}
+                    <span className="text-xs text-zwey-muted">
+                      {bio.length}/300
+                    </span>
+                  </div>
+
+                  <Textarea
+                    id="bio"
+                    value={bio}
+onChange={(event) =>
+setBio(
+event.target.value
+)
+}
 placeholder="Tell people a little about your sound."
-className="min-h-[140px] w-full resize-y rounded-xl border border-[#272731] bg-[#18181F] px-4 py-3.5 text-[#F5F5F7] outline-none transition placeholder:text-[#52525B] focus:border-[#8B5CF6] focus:ring-4 focus:ring-[#8B5CF6]/10"
 maxLength={300}
 />
 </div>
 </div>
 </div>
 
-<div className="border-t border-[#272731] pt-8">
+<div className="border-t border-zwey-border pt-8">
 <div className="mb-5">
 <h2 className="text-lg font-bold">
 Music links
 </h2>
-<p className="mt-1 text-sm leading-6 text-[#A1A1AA]">
+
+<p className="mt-1 text-sm leading-6 text-zwey-muted">
 Connect people to where your music already lives.
 </p>
 </div>
 
 <div className="grid gap-4">
-<input
+<Input
 type="url"
 value={spotifyUrl}
-onChange={(event) => setSpotifyUrl(event.target.value)}
+onChange={(event) =>
+setSpotifyUrl(
+event.target.value
+)
+}
 placeholder="Spotify URL"
-className="w-full rounded-xl border border-[#272731] bg-[#18181F] px-4 py-3.5 text-[#F5F5F7] outline-none transition placeholder:text-[#52525B] focus:border-[#8B5CF6] focus:ring-4 focus:ring-[#8B5CF6]/10"
 />
 
-<input
+<Input
 type="url"
 value={bandlabUrl}
-onChange={(event) => setBandlabUrl(event.target.value)}
+onChange={(event) =>
+setBandlabUrl(
+event.target.value
+)
+}
 placeholder="BandLab URL"
-className="w-full rounded-xl border border-[#272731] bg-[#18181F] px-4 py-3.5 text-[#F5F5F7] outline-none transition placeholder:text-[#52525B] focus:border-[#8B5CF6] focus:ring-4 focus:ring-[#8B5CF6]/10"
 />
 
-<input
+<Input
 type="url"
 value={rapchatUrl}
-onChange={(event) => setRapchatUrl(event.target.value)}
+onChange={(event) =>
+setRapchatUrl(
+event.target.value
+)
+}
 placeholder="Rapchat URL"
-className="w-full rounded-xl border border-[#272731] bg-[#18181F] px-4 py-3.5 text-[#F5F5F7] outline-none transition placeholder:text-[#52525B] focus:border-[#8B5CF6] focus:ring-4 focus:ring-[#8B5CF6]/10"
 />
 </div>
 </div>
 
-<div className="border-t border-[#272731] pt-8">
-<button
+<div className="border-t border-zwey-border pt-8">
+<Button
 type="submit"
+variant="primary"
+size="lg"
+fullWidth
+loading={saving}
 disabled={saving}
-className="w-full rounded-xl bg-[#8B5CF6] px-5 py-4 text-sm font-bold text-white shadow-lg shadow-[#8B5CF6]/10 transition hover:bg-[#7C3AED] focus:outline-none focus:ring-4 focus:ring-[#8B5CF6]/20 disabled:cursor-not-allowed disabled:opacity-50"
 >
-{saving ? "Saving profile..." : currentProfileId ? "Save Changes" : "Create Artist Profile"}
-</button>
+{currentProfileId
+? "Save Changes"
+: "Create Artist Profile"}
+</Button>
 </div>
 </form>
-</section>
+</Card>
 </div>
 </main>
 );
-}
+  }
