@@ -25,6 +25,15 @@ function getProfileErrorMessage(error) {
   }
 }
 
+function getInitials(name = "") {
+  return name
+    .split(" ")
+    .map((part) => part[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+}
+
 export default function Dashboard() {
   const {
     user,
@@ -73,7 +82,11 @@ export default function Dashboard() {
           return;
         }
 
-        if (!accountData.artistProfileId) {
+        const username =
+          accountData.username ||
+          accountData.artistProfileId;
+
+        if (!username) {
           router.replace("/onboarding");
           return;
         }
@@ -81,7 +94,7 @@ export default function Dashboard() {
         const artistRef = doc(
           db,
           "artistProfiles",
-          accountData.artistProfileId
+          username
         );
 
         const artistSnapshot = await getDoc(artistRef);
@@ -95,8 +108,17 @@ export default function Dashboard() {
           return;
         }
 
+        const artistData = artistSnapshot.data();
+
+        if (artistData.uid !== user.uid) {
+          setProfileError(
+            "Your artist profile ownership could not be verified."
+          );
+          return;
+        }
+
         setAccount(accountData);
-        setArtist(artistSnapshot.data());
+        setArtist(artistData);
       } catch (err) {
         console.error("Dashboard load error:", err);
 
@@ -127,7 +149,6 @@ export default function Dashboard() {
             className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-4 border-[#272731] border-t-[#8B5CF6]"
             aria-hidden="true"
           />
-
           <p className="text-sm font-medium">
             Loading your studio...
           </p>
@@ -178,6 +199,9 @@ export default function Dashboard() {
     return null;
   }
 
+  const profileImage =
+    artist.picUrl || artist.pic_url || "";
+
   return (
     <main className="min-h-screen bg-[#08080B] text-[#F5F5F7]">
       <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
@@ -204,20 +228,15 @@ export default function Dashboard() {
         <section className="mt-8 rounded-2xl border border-[#272731] bg-[#111116] p-6 sm:p-8">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-4">
-              {artist.pic_url ? (
+              {profileImage ? (
                 <img
-                  src={artist.pic_url}
+                  src={profileImage}
                   alt={artist.artistName}
                   className="h-20 w-20 rounded-full border border-[#272731] object-cover"
                 />
               ) : (
                 <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#18181F] text-xl font-bold text-[#A78BFA] ring-1 ring-[#7C3AED]/40">
-                  {artist.artistName
-                    .split(" ")
-                    .map((part) => part[0])
-                    .slice(0, 2)
-                    .join("")
-                    .toUpperCase()}
+                  {getInitials(artist.artistName)}
                 </div>
               )}
 
@@ -301,4 +320,4 @@ export default function Dashboard() {
       </div>
     </main>
   );
-                }
+      }
