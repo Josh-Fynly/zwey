@@ -44,7 +44,8 @@ service cloud.firestore {
           "spotifyUrl",
           "bandlabUrl",
           "rapchatUrl",
-          "pic_url"
+          "pic_url",
+          "picUrl"
         ]);
 
       allow delete: if false;
