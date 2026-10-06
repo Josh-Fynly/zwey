@@ -9,15 +9,16 @@ import {
 
 import {
   createUserWithEmailAndPassword,
+  deleteUser,
+  onAuthStateChanged,
   signInWithEmailAndPassword,
   signOut,
-  onAuthStateChanged,
 } from "firebase/auth";
 
 import {
   doc,
-  setDoc,
   serverTimestamp,
+  setDoc,
 } from "firebase/firestore";
 
 import { auth, db } from "../lib/firebase";
@@ -44,18 +45,31 @@ export function AuthProvider({ children }) {
     const userCredential =
       await createUserWithEmailAndPassword(
         auth,
-        email,
+        email.trim(),
         password
       );
 
     const newUser = userCredential.user;
 
-    await setDoc(doc(db, "users", newUser.uid), {
-      uid: newUser.uid,
-      email: newUser.email,
-      profileCompleted: false,
-      createdAt: serverTimestamp(),
-    });
+    try {
+      await setDoc(doc(db, "users", newUser.uid), {
+        uid: newUser.uid,
+        email: newUser.email,
+        profileCompleted: false,
+        createdAt: serverTimestamp(),
+      });
+    } catch (error) {
+      try {
+        await deleteUser(newUser);
+      } catch (deleteError) {
+        console.error(
+          "Failed to roll back authentication account:",
+          deleteError
+        );
+      }
+
+      throw error;
+    }
 
     return newUser;
   };
@@ -63,7 +77,7 @@ export function AuthProvider({ children }) {
   const login = async (email, password) => {
     return signInWithEmailAndPassword(
       auth,
-      email,
+      email.trim(),
       password
     );
   };
@@ -89,4 +103,4 @@ export function AuthProvider({ children }) {
 
 export function useAuth() {
   return useContext(AuthContext);
-    }
+}
