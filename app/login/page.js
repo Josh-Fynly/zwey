@@ -16,6 +16,79 @@ import Input from "../../components/ui/Input";
 import Alert from "../../components/ui/Alert";
 import Card from "../../components/ui/Card";
 
+function getGoogleErrorMessage(error) {
+  if (error?.code === "auth/popup-blocked") {
+    return "Your browser blocked the Google sign-in window. Allow popups for Zwey and try again.";
+  }
+
+  if (error?.code === "auth/popup-closed-by-user") {
+    return "Google sign-in was cancelled.";
+  }
+
+  if (error?.code === "auth/cancelled-popup-request") {
+    return "Another Google sign-in request is already in progress.";
+  }
+
+  if (error?.code === "auth/unauthorized-domain") {
+    return "This Zwey website domain is not authorized for Google sign-in yet.";
+  }
+
+  if (error?.code === "auth/operation-not-allowed") {
+    return "Google sign-in is not enabled for Zwey yet.";
+  }
+
+  if (error?.code === "auth/account-exists-with-different-credential") {
+    return "An account already exists with this email using a different sign-in method. Sign in with that method instead.";
+  }
+
+  return getZweyErrorMessage(error, "google-sign-in");
+}
+
+function PasswordField({
+  value,
+  onChange,
+  disabled,
+  autoComplete,
+  placeholder,
+}) {
+  const [visible, setVisible] = useState(false);
+
+  return (
+    <div>
+      <label
+        htmlFor="login-password"
+        className="mb-2 block text-sm font-medium text-zwey-text"
+      >
+        Password
+      </label>
+
+      <div className="relative">
+        <input
+          id="login-password"
+          type={visible ? "text" : "password"}
+          autoComplete={autoComplete}
+          value={value}
+          onChange={onChange}
+          placeholder={placeholder}
+          disabled={disabled}
+          className="h-12 w-full min-w-0 rounded-xl border border-zwey-border bg-zwey-surface px-4 pr-14 text-sm text-zwey-text outline-none transition placeholder:text-zwey-muted focus:border-zwey-violet focus:ring-4 focus:ring-zwey-violet/10 disabled:cursor-not-allowed disabled:opacity-60"
+        />
+
+        <button
+          type="button"
+          onClick={() => setVisible((current) => !current)}
+          disabled={disabled}
+          aria-label={visible ? "Hide password" : "Show password"}
+          title={visible ? "Hide password" : "Show password"}
+          className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-lg transition hover:bg-zwey-elevated disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {visible ? "🙈" : "👁️"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -80,7 +153,7 @@ export default function LoginPage() {
 
       await continueAfterAuthentication(credential.user);
     } catch (authError) {
-      setError(getZweyErrorMessage(authError, "google-sign-in"));
+      setError(getGoogleErrorMessage(authError));
     } finally {
       setGoogleLoading(false);
     }
@@ -146,12 +219,10 @@ export default function LoginPage() {
             />
 
             <div>
-              <Input
-                label="Password"
-                type="password"
-                autoComplete="current-password"
+              <PasswordField
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
+                autoComplete="current-password"
                 placeholder="Enter your password"
                 disabled={loading || googleLoading}
               />
@@ -190,4 +261,4 @@ export default function LoginPage() {
       </div>
     </main>
   );
-              }
+        }
