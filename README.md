@@ -1,567 +1,185 @@
-Zwey — Social Hub for Upcoming Artists
+# Zwey
 
-Zwey is a social profile platform for upcoming artists to build a public music identity, showcase their work, connect their music platforms, and share their profile through a single link.
+Zwey is a social hub for upcoming artists and producers.
 
-The MVP focuses on giving independent and emerging artists a simple, professional online presence without requiring them to build a website from scratch.
+Artists can create a public identity, connect their existing music platforms, discover other creators, publish and interact with music, find potential collaborators, and access music distribution resources.
 
----
+## Live Beta
 
-Product Vision
+Zwey is currently available as a public beta:
 
-Zwey aims to become a lightweight social and distribution hub for independent artists.
+https://zwey-app.vercel.app
 
-Artists should be able to:
+The application is actively in development. Early users are welcome to test the platform and report issues or usability problems.
 
-- Create an account
-- Build a public artist profile
-- Choose a unique username
-- Add their artist name, bio, and genre
-- Add links to music platforms
-- Share their public profile
-- Discover other artists
-- Connect with other creators
-- Eventually distribute music to major platforms from one place
+## What Zwey Is
 
----
+Zwey is built around artist discovery and networking.
 
-Current MVP
+The core product direction is:
 
-The current application includes the foundation for:
+Artist joins Zwey → creates an artist identity → connects music platforms → publishes music → gets discovered → receives engagement → finds potential collaborators → grows their network → accesses distribution and promotion opportunities.
 
-- Firebase authentication
-- Email/password signup
-- Email/password login
-- Password visibility toggle
-- Password reset via email
-- Artist onboarding
-- Artist profile information
-- Public artist profiles
-- Artist initials avatars
-- Username-based profile URLs
-- Genre badges
-- Music platform links
-- Profile sharing
-- Firestore user records
-- Protected dashboard access
+Zwey is not a music distributor. Distribution is provided through external partners such as DistroKid.
 
----
+## Current Authentication
 
-Tech Stack
+Zwey currently supports:
 
-Frontend
+- Sign up with Google
+- Sign in with Google
+- Sign up with email and password
+- Sign in with email and password
+- Password reset by email
+
+Email authentication is not limited to Gmail. Users can use any supported email address from providers such as Microsoft, Yahoo, Proton, iCloud, university, company, or other valid email services.
+
+## Artist Profiles
+
+Artists can create a public profile containing:
+
+- Artist name
+- Unique username
+- Genre
+- Bio
+- Profile image
+- Primary DAW
+- Spotify
+- Apple Music
+- Audiomack
+- Boomplay
+- BandLab
+- Rapchat
+- Soundtrap
+- Audiotool
+
+Music-platform links are optional and can be added or updated later.
+
+## Technology
+
+Zwey currently uses:
 
 - Next.js 14
-- React
-- Tailwind CSS
+- React 18
 - JavaScript
-
-Backend / Infrastructure
-
+- Tailwind CSS
 - Firebase Authentication
-- Firebase Firestore
-
-Hosting
-
+- Cloud Firestore
+- Firebase Storage
 - Vercel
-
-Development
-
 - GitHub
-- npm
-- Node.js
 
----
+## Architecture
 
-Project Structure
+The application separates private account data from public artist identity.
 
-zwey/
-│
-├── app/
-│   ├── dashboard/
-│   │   └── page.js
-│   │
-│   ├── explore/
-│   │   └── page.js
-│   │
-│   ├── login/
-│   │   └── page.js
-│   │
-│   ├── onboarding/
-│   │   └── page.js
-│   │
-│   ├── signup/
-│   │   └── page.js
-│   │
-│   ├── u/
-│   │   └── [username]/
-│   │       └── page.js
-│   │
-│   ├── globals.css
-│   ├── layout.js
-│   └── page.js
-│
-├── context/
-│   └── AuthContext.js
-│
-├── lib/
-│   └── firebase.js
-│
-├── .env.local
-├── .gitignore
-├── jsconfig.json
-├── next.config.js
-├── package.json
-└── README.md
+Private account data is stored under:
 
----
+`users/{uid}`
 
-Getting Started
+Public artist profiles are stored under:
 
-Prerequisites
+`artistProfiles/{username}`
 
-Install the following before running Zwey locally:
+Firebase Authentication handles identity and sign-in. Cloud Firestore stores application data, while Firebase Storage handles profile images.
 
-- Node.js 18 or newer
-- npm
-- A Firebase account
-- A GitHub account
-- A Vercel account for deployment
+Security rules control access to private account data, public artist profiles, and uploaded files.
 
----
+## Current Product Status
 
-Installation
+Zwey is in public beta.
 
-Clone the repository:
+Implemented foundations include:
 
-git clone https://github.com/Josh-Fynly/zwey.git
+- Public deployment
+- Email authentication
+- Google authentication
+- Password recovery
+- Artist onboarding
+- Artist identity
+- Username-based public profiles
+- Artist profile links
+- DAW selection
+- Profile image upload
+- Responsive mobile-first UI
+- Firebase security rules
+- Production deployment through Vercel
 
-Enter the project directory:
+The remaining product capabilities are being developed and hardened through beta testing.
 
-cd zwey
+## Development Roadmap
+
+The broader product roadmap includes:
+
+1. Music posting
+2. Social feed
+3. Likes and comments
+4. Artist discovery
+5. Artist connections and collaboration
+6. DistroKid education and affiliate integration
+7. Product analytics
+8. Paid promotion
+9. Moderation and reporting
+10. Advanced creator and premium features
+
+Features are released progressively rather than being represented as complete before they are production-ready.
+
+## Local Development
 
 Install dependencies:
 
+```bash
 npm install
+```
 
----
+Run the development server:
 
-Firebase Configuration
-
-Zwey uses Firebase Authentication and Firestore.
-
-Create or open a Firebase project and enable:
-
-1. Firebase Authentication
-2. Email/Password authentication
-3. Cloud Firestore
-
-Create a web application inside the Firebase project and obtain the Firebase configuration values.
-
----
-
-Environment Variables
-
-Create a local environment file:
-
-.env.local
-
-Add the following variables:
-
-NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_auth_domain
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_storage_bucket
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id
-NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
-
-Never commit ".env.local" to GitHub.
-
-The file should remain listed in ".gitignore".
-
----
-
-Run the Development Server
-
-Start the local development server:
-
+```bash
 npm run dev
+```
 
-Then open:
+Open:
 
-http://localhost:3000
+`http://localhost:3000`
 
----
+Create the required Firebase environment variables in `.env.local` before running the application locally.
 
-Production Build
+## Environment Variables
 
-Before deploying, verify that the project builds successfully:
+The Firebase client configuration is provided through environment variables.
 
-npm run build
+Do not commit `.env.local` or Firebase credentials to the repository.
 
-If the build succeeds, start the production server locally with:
+Production environment variables are configured in the deployment environment.
 
-npm start
+## Engineering Principles
 
----
+Zwey is being developed with:
 
-Authentication Flow
+- Mobile-first responsive design
+- Clear separation of private and public data
+- Explicit Firebase security rules
+- Production-safe error handling
+- Measurable product events
+- Dependency-ordered feature development
+- Human review of AI-assisted code
+- Incremental testing and verification
+- No dependency on AI for core product functionality
 
-The intended authentication flow is:
+## Beta Testing
 
-Landing Page
-     │
-     ├── Existing user ──> Login
-     │
-     └── New user ───────> Sign Up
-                              │
-                              ▼
-                         Onboarding
-                              │
-                              ▼
-                          Dashboard
+Because Zwey is in active development, beta testers may encounter incomplete features, unexpected behavior, or UI changes.
 
-Authentication is handled through Firebase Authentication.
+When reporting an issue, include:
 
-The application uses a shared authentication context:
+- What you were trying to do
+- What happened
+- What you expected to happen
+- Device and browser
+- Screenshot or screen recording when useful
 
-context/AuthContext.js
+## Repository
 
-This context provides:
+The source code is maintained on GitHub and deployed through Vercel.
 
-- Current authenticated user
-- Authentication loading state
-- Signup
-- Login
-- Logout
-
----
-
-Artist Onboarding
-
-After registration, an artist can configure their public profile.
-
-Current profile fields include:
-
-- Artist name
-- Username
-- Bio
-- Genre
-- Spotify URL
-- BandLab URL
-- Rapchat URL
-- Profile image URL
-
-Profile information is stored in Firestore under the:
-
-users
-
-collection.
-
----
-
-Public Profiles
-
-Each artist can have a public profile accessible through:
-
-/u/[username]
-
-Example:
-
-https://your-domain.com/u/artistname
-
-The public profile can display:
-
-- Artist avatar
-- Artist initials when no image is available
-- Artist name
-- Username
-- Genre
-- Bio
-- Spotify
-- BandLab
-- Rapchat
-- Share Profile button
-
----
-
-Profile Sharing
-
-Public profiles include a share function that copies the current profile URL to the clipboard.
-
-The interface provides feedback when the URL has been successfully copied.
-
----
-
-Artist Avatar
-
-If an artist has not supplied a profile image, Zwey generates an initials-based avatar.
-
-For example:
-
-John Doe
-
-becomes:
-
-JD
-
-The avatar background is generated deterministically from the artist's username so that the same username consistently receives the same avatar color.
-
----
-
-Genre System
-
-Artists can currently select from:
-
-- Hip-Hop
-- Afrobeats
-- Trap
-- R&B
-- Drill
-- Soul
-- Electronic
-- Reggae
-- Pop
-- Other
-
-Genre information is displayed as a visual badge on public profiles.
-
----
-
-Firestore Data Model
-
-The primary artist collection is:
-
-users
-
-A user document may contain:
-
-users/{uid}
-
-Example structure:
-
-uid
-email
-createdAt
-artistName
-username
-bio
-genre
-spotifyUrl
-bandlabUrl
-rapchatUrl
-pic_url
-
----
-
-Security
-
-The project uses Firebase Authentication for account authentication and Firestore for persistent user data.
-
-Important security requirements for production:
-
-- Never expose Firebase private credentials.
-- Never commit ".env.local".
-- Configure Firestore security rules before production launch.
-- Restrict users from modifying another artist's profile.
-- Validate usernames.
-- Prevent duplicate usernames.
-- Validate external platform URLs.
-- Review Firebase Authentication settings before launch.
-
----
-
-Deployment
-
-Zwey is designed to deploy through Vercel.
-
-Connect the GitHub repository to Vercel and configure the required Firebase environment variables in the Vercel project settings.
-
-The production build command is:
-
-npm run build
-
-The application is deployed from the:
-
-main
-
-branch.
-
----
-
-Development Workflow
-
-The recommended workflow is:
-
-Feature / Fix
-     │
-     ▼
-Update complete file
-     │
-     ▼
-Test locally
-     │
-     ▼
-npm run build
-     │
-     ▼
-Commit changes
-     │
-     ▼
-Push to GitHub
-     │
-     ▼
-Vercel deployment
-     │
-     ▼
-Verify production
-
-Every significant change should be tested with:
-
-npm run build
-
-before considering the change deployment-ready.
-
----
-
-Project Status
-
-Current Phase
-
-MVP Foundation — Authentication + Artist Profiles
-
-The application is currently focused on establishing a stable foundation before adding larger social and music-distribution features.
-
-Current priorities
-
-1. Stable authentication
-2. Reliable signup/login flow
-3. Password reset
-4. Password visibility controls
-5. Artist onboarding
-6. Public artist profiles
-7. Profile sharing
-8. Firestore data integrity
-9. Responsive frontend UI
-10. Production deployment stability
-
----
-
-Roadmap
-
-Phase 1 — Foundation
-
-- [x] Next.js application
-- [x] Firebase integration
-- [x] Firebase Authentication
-- [x] Firestore integration
-- [x] Signup
-- [x] Login
-- [x] Logout
-- [x] Password reset
-- [x] Password visibility toggle
-- [x] Artist onboarding
-- [x] Public profile route
-
-Phase 2 — Artist Profiles
-
-- [x] Artist name
-- [x] Username
-- [x] Bio
-- [x] Genre
-- [x] Profile image
-- [x] Initials avatar fallback
-- [x] Spotify link
-- [x] BandLab link
-- [x] Rapchat link
-- [x] Share profile
-
-Phase 3 — Social Layer
-
-- [ ] Explore page
-- [ ] Artist discovery
-- [ ] Artist search
-- [ ] Artist connections
-- [ ] Following system
-- [ ] Activity feed
-- [ ] Likes
-- [ ] Comments
-- [ ] Notifications
-
-Phase 4 — Music Layer
-
-- [ ] Track uploads
-- [ ] Track sharing
-- [ ] Artist releases
-- [ ] Music previews
-- [ ] Playlist functionality
-- [ ] Music analytics
-
-Phase 5 — Distribution
-
-- [ ] Distribution workflow
-- [ ] Spotify distribution
-- [ ] Apple Music distribution
-- [ ] Release management
-- [ ] Metadata management
-- [ ] Distribution status tracking
-
----
-
-Product Principles
-
-Zwey should prioritize:
-
-1. Simplicity
-
-Artists should be able to create and share their identity without unnecessary complexity.
-
-2. Professional presentation
-
-Public profiles should look credible enough for artists to share with fans, collaborators, labels, producers, and industry professionals.
-
-3. Mobile-first usability
-
-The product should work exceptionally well on mobile devices because many target users will access Zwey primarily from phones.
-
-4. Reliability
-
-Authentication, profile creation, profile loading, and sharing should work consistently before additional features are introduced.
-
-5. Scalable architecture
-
-The MVP should establish a foundation that can eventually support a larger social and music platform.
-
----
-
-Team
-
-Product: TENcube
-
-Engineering: Josh Fynly
-
-GitHub:
-
-https://github.com/Josh-Fynly
-
-Repository:
-
-https://github.com/Josh-Fynly/zwey
-
----
-
-Project Documentation
-
-Additional project documentation may include:
-
-SCHEMA.md
-WEEKS.md
-
-These documents describe the planned data schema and development timeline.
-
----
-
-License
-
-This project is currently a private product under development.
-
-All rights reserved unless otherwise specified by the project owners.
+Zwey is being built as a production-oriented social discovery platform for emerging artists, with the goal of helping creators become discoverable, connect with one another, and grow their music careers.
