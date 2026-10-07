@@ -15,6 +15,81 @@ import Input from "../../components/ui/Input";
 import Alert from "../../components/ui/Alert";
 import Card from "../../components/ui/Card";
 
+function getGoogleErrorMessage(error) {
+  if (error?.code === "auth/popup-blocked") {
+    return "Your browser blocked the Google sign-up window. Allow popups for Zwey and try again.";
+  }
+
+  if (error?.code === "auth/popup-closed-by-user") {
+    return "Google sign-up was cancelled.";
+  }
+
+  if (error?.code === "auth/cancelled-popup-request") {
+    return "Another Google sign-up request is already in progress.";
+  }
+
+  if (error?.code === "auth/unauthorized-domain") {
+    return "This Zwey website domain is not authorized for Google sign-up yet.";
+  }
+
+  if (error?.code === "auth/operation-not-allowed") {
+    return "Google sign-up is not enabled for Zwey yet.";
+  }
+
+  if (error?.code === "auth/account-exists-with-different-credential") {
+    return "An account already exists with this email using a different sign-in method. Sign in with that method instead.";
+  }
+
+  return getZweyErrorMessage(error, "google-sign-up");
+}
+
+function PasswordField({
+  id,
+  label,
+  value,
+  onChange,
+  disabled,
+  autoComplete,
+  placeholder,
+}) {
+  const [visible, setVisible] = useState(false);
+
+  return (
+    <div>
+      <label
+        htmlFor={id}
+        className="mb-2 block text-sm font-medium text-zwey-text"
+      >
+        {label}
+      </label>
+
+      <div className="relative">
+        <input
+          id={id}
+          type={visible ? "text" : "password"}
+          autoComplete={autoComplete}
+          value={value}
+          onChange={onChange}
+          placeholder={placeholder}
+          disabled={disabled}
+          className="h-12 w-full min-w-0 rounded-xl border border-zwey-border bg-zwey-surface px-4 pr-14 text-sm text-zwey-text outline-none transition placeholder:text-zwey-muted focus:border-zwey-violet focus:ring-4 focus:ring-zwey-violet/10 disabled:cursor-not-allowed disabled:opacity-60"
+        />
+
+        <button
+          type="button"
+          onClick={() => setVisible((current) => !current)}
+          disabled={disabled}
+          aria-label={visible ? `Hide ${label.toLowerCase()}` : `Show ${label.toLowerCase()}`}
+          title={visible ? "Hide password" : "Show password"}
+          className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-lg transition hover:bg-zwey-elevated disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {visible ? "🙈" : "👁️"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function SignupPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -67,7 +142,7 @@ export default function SignupPage() {
 
       router.replace("/onboarding");
     } catch (authError) {
-      setError(getZweyErrorMessage(authError, "google-sign-up"));
+      setError(getGoogleErrorMessage(authError));
     } finally {
       setGoogleLoading(false);
     }
@@ -132,22 +207,22 @@ export default function SignupPage() {
               disabled={loading || googleLoading}
             />
 
-            <Input
+            <PasswordField
+              id="signup-password"
               label="Password"
-              type="password"
-              autoComplete="new-password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
+              autoComplete="new-password"
               placeholder="At least 6 characters"
               disabled={loading || googleLoading}
             />
 
-            <Input
+            <PasswordField
+              id="signup-confirm-password"
               label="Confirm password"
-              type="password"
-              autoComplete="new-password"
               value={confirmPassword}
               onChange={(event) => setConfirmPassword(event.target.value)}
+              autoComplete="new-password"
               placeholder="Enter your password again"
               disabled={loading || googleLoading}
             />
@@ -176,4 +251,4 @@ export default function SignupPage() {
       </div>
     </main>
   );
-                }
+            }
