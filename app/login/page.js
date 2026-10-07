@@ -1,180 +1,193 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAuth } from "../../context/AuthContext";
-import { auth } from "../../lib/firebase";
-import { sendPasswordResetEmail } from "firebase/auth";
+import {
+  GoogleAuthProvider,
+  signInWithEmailAndPassword,
+  signInWithPopup,
+} from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
+import { auth, db } from "../../lib/firebase";
+import { getZweyErrorMessage } from "../../lib/errors";
+import Button from "../../components/ui/Button";
+import Input from "../../components/ui/Input";
+import Alert from "../../components/ui/Alert";
+import Card from "../../components/ui/Card";
 
-function getAuthErrorMessage(error) {
-  switch (error?.code) {
-    case "auth/invalid-credential":
-    case "auth/user-not-found":
-    case "auth/wrong-password":
-      return "Incorrect email or password. Please try again.";
-
-    case "auth/too-many-requests":
-      return "Too many unsuccessful attempts. Please try again later.";
-
-    case "auth/network-request-failed":
-      return "Network error. Check your connection and try again.";
-
-    case "auth/user-disabled":
-      return "This account has been disabled. Please contact support.";
-
-    default:
-      return "Unable to log in right now. Please try again.";
-  }
-}
-
-function getPasswordResetErrorMessage(error) {
-  switch (error?.code) {
-    case "auth/invalid-email":
-      return "Please enter a valid email address.";
-
-    case "auth/user-not-found":
-      return "No account was found with that email address.";
-
-    case "auth/too-many-requests":
-      return "Too many requests. Please try again later.";
-
-    case "auth/network-request-failed":
-      return "Network error. Check your connection and try again.";
-
-    default:
-      return "Unable to send the password reset email. Please try again.";
-  }
-}
-
-export default function Login() {
+export default function LoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
-  const [resetLoading, setResetLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
-  const router = useRouter();
-  const { login } = useAuth();
+  const continueAfterAuthentication = async (user) => {
+    const userSnapshot = await getDoc(doc(db, "users", user.uid));
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+    if (!userSnapshot.exists()) {
+      router.replace("/onboarding");
+      return;
+    }
 
+    const userData = userSnapshot.data();
+
+    if (userData.profileCompleted === true) {
+      router.replace("/dashboard");
+      return;
+    }
+
+    router.replace("/onboarding");
+  };
+
+  const handleEmailSignIn = async (event) => {
+    event.preventDefault();
     setError("");
-    setSuccess("");
+
+    if (!email.trim() || !password) {
+      setError("Enter your email address and password.");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      await login(email, password);
-      router.push("/dashboard");
-    } catch (err) {
-      console.error("Login error:", err);
-      setError(getAuthErrorMessage(err));
+      const credential = await signInWithEmailAndPassword(
+        auth,
+        email.trim(),
+        password
+      );
+
+      await continueAfterAuthentication(credential.user);
+    } catch (authError) {
+      setError(getZweyErrorMessage(authError, "sign-in"));
     } finally {
       setLoading(false);
     }
   };
 
-  const handleForgotPassword = async () => {
+  const handleGoogleSignIn = async () => {
     setError("");
-    setSuccess("");
-
-    if (!email.trim()) {
-      setError("Enter your email address first.");
-      return;
-    }
-
-    setResetLoading(true);
+    setGoogleLoading(true);
 
     try {
-      await sendPasswordResetEmail(auth, email.trim());
-      setSuccess("Password reset email sent. Check your inbox.");
-    } catch (err) {
-      console.error("Password reset error:", err);
-      setError(getPasswordResetErrorMessage(err));
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: "select_account" });
+
+      const credential = await signInWithPopup(auth, provider);
+
+      await continueAfterAuthentication(credential.user);
+    } catch (authError) {
+      setError(getZweyErrorMessage(authError, "google-sign-in"));
     } finally {
-      setResetLoading(false);
+      setGoogleLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="w-full max-w-md p-6 border rounded-lg">
-        <h1 className="text-xl font-bold mb-4">Login</h1>
-
-        {error && (
-          <p className="text-red-500 mb-3" role="alert">
-            {error}
-          </p>
-        )}
-
-        {success && (
-          <p className="text-green-600 mb-3" role="status">
-            {success}
-          </p>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-3">
-          <input
-            type="email"
-            placeholder="Email"
-            className="w-full border p-2"
-            value={email}
-            onChange={(e) => {
-              setEmail(e.target.value);
-              setError("");
-              setSuccess("");
-            }}
-            required
-          />
-
-          <div className="relative">
-            <input
-              type={showPassword ? "text" : "password"}
-              placeholder="Password"
-              className="w-full border p-2 pr-16"
-              value={password}
-              onChange={(e) => {
-                setPassword(e.target.value);
-                setError("");
-                setSuccess("");
-              }}
-              required
-            />
-
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-2 top-2 text-sm"
-              aria-label={showPassword ? "Hide password" : "Show password"}
+    <main className="min-h-screen bg-zwey-bg px-4 py-8 text-zwey-text sm:px-6">
+      <div className="mx-auto flex min-h-[calc(100dvh-4rem)] w-full max-w-md items-center">
+        <Card className="w-full p-5 sm:p-7">
+          <div className="mb-8">
+            <Link
+              href="/"
+              className="text-sm font-semibold tracking-tight text-zwey-violetBright"
             >
-              {showPassword ? "🙈" : "👁️"}
-            </button>
+              Zwey
+            </Link>
+
+            <h1 className="mt-6 text-2xl font-semibold tracking-tight">
+              Welcome back
+            </h1>
+
+            <p className="mt-2 text-sm leading-6 text-zwey-muted">
+              Sign in to continue building your artist presence.
+            </p>
           </div>
 
-          <button
-            type="submit"
-            className="w-full bg-black text-white p-2 disabled:opacity-60"
-            disabled={loading}
-          >
-            {loading ? "Logging in..." : "Login"}
-          </button>
-        </form>
+          {error ? (
+            <div className="mb-5">
+              <Alert variant="error">{error}</Alert>
+            </div>
+          ) : null}
 
-        <div className="flex justify-between mt-3 text-sm">
-          <button
+          <Button
             type="button"
-            onClick={handleForgotPassword}
-            disabled={resetLoading}
-            className="disabled:opacity-60"
+            variant="secondary"
+            size="lg"
+            fullWidth
+            loading={googleLoading}
+            disabled={loading}
+            onClick={handleGoogleSignIn}
           >
-            {resetLoading ? "Sending..." : "Forgot password?"}
-          </button>
+            Continue with Google
+          </Button>
 
-          <a href="/signup">Sign up</a>
-        </div>
+          <div className="my-6 flex items-center gap-3">
+            <div className="h-px flex-1 bg-zwey-border" />
+            <span className="text-xs uppercase tracking-[0.16em] text-zwey-muted">
+              or email
+            </span>
+            <div className="h-px flex-1 bg-zwey-border" />
+          </div>
+
+          <form onSubmit={handleEmailSignIn} className="space-y-5">
+            <Input
+              label="Email address"
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="you@example.com"
+              disabled={loading || googleLoading}
+            />
+
+            <div>
+              <Input
+                label="Password"
+                type="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                placeholder="Enter your password"
+                disabled={loading || googleLoading}
+              />
+
+              <div className="mt-2 text-right">
+                <Link
+                  href="/forgot-password"
+                  className="text-sm font-medium text-zwey-violetBright hover:text-zwey-text"
+                >
+                  Forgot password?
+                </Link>
+              </div>
+            </div>
+
+            <Button
+              type="submit"
+              size="lg"
+              fullWidth
+              loading={loading}
+              disabled={googleLoading}
+            >
+              Sign in
+            </Button>
+          </form>
+
+          <p className="mt-7 text-center text-sm text-zwey-muted">
+            New to Zwey?{" "}
+            <Link
+              href="/signup"
+              className="font-medium text-zwey-violetBright hover:text-zwey-text"
+            >
+              Create an account
+            </Link>
+          </p>
+        </Card>
       </div>
-    </div>
+    </main>
   );
               }
