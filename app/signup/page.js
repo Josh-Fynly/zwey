@@ -1,125 +1,179 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAuth } from "../../context/AuthContext";
+import {
+  GoogleAuthProvider,
+  createUserWithEmailAndPassword,
+  signInWithPopup,
+} from "firebase/auth";
+import { auth } from "../../lib/firebase";
+import { getZweyErrorMessage } from "../../lib/errors";
+import Button from "../../components/ui/Button";
+import Input from "../../components/ui/Input";
+import Alert from "../../components/ui/Alert";
+import Card from "../../components/ui/Card";
 
-export default function SignUp() {
+export default function SignupPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
-  const router = useRouter();
-  const { signup } = useAuth();
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
+  const handleEmailSignup = async (event) => {
+    event.preventDefault();
     setError("");
+
+    if (!email.trim() || !password || !confirmPassword) {
+      setError("Complete all fields to create your account.");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+
+    if (password.length < 6) {
+      setError("Your password must contain at least 6 characters.");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      await signup(email.trim(), password);
-      router.push("/onboarding");
-    } catch (err) {
-      console.error(err);
-      setError(err.message || "Failed to create account.");
+      await createUserWithEmailAndPassword(auth, email.trim(), password);
+      router.replace("/onboarding");
+    } catch (authError) {
+      setError(getZweyErrorMessage(authError, "sign-up"));
     } finally {
       setLoading(false);
     }
   };
 
+  const handleGoogleSignup = async () => {
+    setError("");
+    setGoogleLoading(true);
+
+    try {
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: "select_account" });
+
+      await signInWithPopup(auth, provider);
+
+      router.replace("/onboarding");
+    } catch (authError) {
+      setError(getZweyErrorMessage(authError, "google-sign-up"));
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
-      <div className="w-full max-w-md bg-white border rounded-xl shadow-sm p-6">
+    <main className="min-h-screen bg-zwey-bg px-4 py-8 text-zwey-text sm:px-6">
+      <div className="mx-auto flex min-h-[calc(100dvh-4rem)] w-full max-w-md items-center">
+        <Card className="w-full p-5 sm:p-7">
+          <div className="mb-8">
+            <Link
+              href="/"
+              className="text-sm font-semibold tracking-tight text-zwey-violetBright"
+            >
+              Zwey
+            </Link>
 
-        <h1 className="text-2xl font-bold mb-2">
-          Create your Zwey account
-        </h1>
+            <h1 className="mt-6 text-2xl font-semibold tracking-tight">
+              Create your account
+            </h1>
 
-        <p className="text-gray-600 mb-6">
-          Join Zwey and create your artist identity.
-        </p>
-
-        {error && (
-          <p className="text-red-500 text-sm mb-4">
-            {error}
-          </p>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Email
-            </label>
-
-            <input
-              type="email"
-              placeholder="you@example.com"
-              className="w-full border rounded-lg px-4 py-3"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              autoComplete="email"
-            />
+            <p className="mt-2 text-sm leading-6 text-zwey-muted">
+              Join Zwey and create your public artist identity.
+            </p>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Password
-            </label>
-
-            <div className="relative">
-              <input
-                type={showPassword ? "text" : "password"}
-                placeholder="Create a password"
-                className="w-full border rounded-lg px-4 py-3 pr-12"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={6}
-                autoComplete="new-password"
-              />
-
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-600"
-                aria-label={
-                  showPassword
-                    ? "Hide password"
-                    : "Show password"
-                }
-              >
-                {showPassword ? "Hide" : "Show"}
-              </button>
+          {error ? (
+            <div className="mb-5">
+              <Alert variant="error">{error}</Alert>
             </div>
+          ) : null}
+
+          <Button
+            type="button"
+            variant="secondary"
+            size="lg"
+            fullWidth
+            loading={googleLoading}
+            disabled={loading}
+            onClick={handleGoogleSignup}
+          >
+            Continue with Google
+          </Button>
+
+          <div className="my-6 flex items-center gap-3">
+            <div className="h-px flex-1 bg-zwey-border" />
+            <span className="text-xs uppercase tracking-[0.16em] text-zwey-muted">
+              or email
+            </span>
+            <div className="h-px flex-1 bg-zwey-border" />
           </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold disabled:bg-gray-400"
-          >
-            {loading ? "Creating account..." : "Create Account"}
-          </button>
+          <form onSubmit={handleEmailSignup} className="space-y-5">
+            <Input
+              label="Email address"
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="you@example.com"
+              disabled={loading || googleLoading}
+            />
 
-        </form>
+            <Input
+              label="Password"
+              type="password"
+              autoComplete="new-password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              placeholder="At least 6 characters"
+              disabled={loading || googleLoading}
+            />
 
-        <p className="text-sm text-gray-600 text-center mt-6">
-          Already have an account?{" "}
-          <a
-            href="/login"
-            className="text-blue-600 font-medium hover:underline"
-          >
-            Log in
-          </a>
-        </p>
+            <Input
+              label="Confirm password"
+              type="password"
+              autoComplete="new-password"
+              value={confirmPassword}
+              onChange={(event) => setConfirmPassword(event.target.value)}
+              placeholder="Enter your password again"
+              disabled={loading || googleLoading}
+            />
 
+            <Button
+              type="submit"
+              size="lg"
+              fullWidth
+              loading={loading}
+              disabled={googleLoading}
+            >
+              Create account
+            </Button>
+          </form>
+
+          <p className="mt-7 text-center text-sm text-zwey-muted">
+            Already have an account?{" "}
+            <Link
+              href="/login"
+              className="font-medium text-zwey-violetBright hover:text-zwey-text"
+            >
+              Sign in
+            </Link>
+          </p>
+        </Card>
       </div>
-    </div>
+    </main>
   );
                 }
